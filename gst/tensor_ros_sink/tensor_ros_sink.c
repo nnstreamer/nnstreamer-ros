@@ -47,8 +47,11 @@
 /**
  * @brief Macro for debug message.
  */
-#define silent_debug(...) \
-    debug_print (DBG, __VA_ARGS__)
+#define silent_debug(SELF, ...) do { \
+    if (DBG) { \
+      GST_DEBUG_OBJECT (SELF, __VA_ARGS__); \
+    } \
+  } while (0)
 
 GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_sink_debug);
 #define GST_CAT_DEFAULT gst_tensor_ros_sink_debug
@@ -428,7 +431,7 @@ gst_tensor_ros_sink_event (GstBaseSink *sink, GstEvent *event)
   self = GST_TENSOR_ROS_SINK (sink);
   type = GST_EVENT_TYPE (event);
 
-  silent_debug ("received event %s", GST_EVENT_TYPE_NAME (event));
+  silent_debug (self, "received event %s", GST_EVENT_TYPE_NAME (event));
 
   switch (type) {
     case GST_EVENT_STREAM_START:
@@ -465,7 +468,7 @@ gst_tensor_ros_sink_query (GstBaseSink *sink, GstQuery *query)
   self = GST_TENSOR_ROS_SINK (sink);
   type = GST_QUERY_TYPE (query);
 
-  silent_debug ("received query %s", GST_QUERY_TYPE_NAME (query));
+  silent_debug (self, "received query %s", GST_QUERY_TYPE_NAME (query));
 
   switch (type) {
     case GST_QUERY_SEEKING:
@@ -540,7 +543,7 @@ gst_tensor_ros_sink_read_caps (const GstCaps *caps, GstTensorsConfig *config)
 
   if (!gst_structure_has_name (structure, "other/tensor") &&
       !gst_structure_has_name (structure, "other/tensors")) {
-    err_print ("The input caps, %s, "
+    GST_ERROR ("The input caps, %s, "
         "do not match the capabilities of the sink pad\n",
         gst_structure_get_name (structure));
     return FALSE;
@@ -569,12 +572,12 @@ gst_tensor_ros_sink_set_caps (GstBaseSink *sink, GstCaps *caps)
   g_mutex_unlock (&self->mutex);
 
   if (!gst_tensor_ros_sink_read_caps (self->in_caps, &in_conf)) {
-    err_print ("Failed to read the input caps\n");
+    GST_ERROR_OBJECT (self, "Failed to read the input caps\n");
     return FALSE;
   }
 
   if (!gst_tensors_config_validate (&in_conf)) {
-    err_print ("Failed to validate the input caps\n");
+    GST_ERROR_OBJECT (self, "Failed to validate the input caps\n");
     return FALSE;
   }
 
@@ -685,7 +688,8 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
     gst_tensor_ros_sink_set_last_render_time (self, now);
 
     if (gst_tensor_ros_sink_get_emit_signal (self)) {
-      silent_debug ("signal for new data [%" GST_TIME_FORMAT "], rate [%d]",
+      silent_debug (self,
+          "signal for new data [%" GST_TIME_FORMAT "], rate [%d]",
           GST_TIME_ARGS (now), signal_rate);
       g_signal_emit (self, _tensor_ros_sink_signals[SIGNAL_NEW_DATA], 0, inbuf);
     }
@@ -737,7 +741,7 @@ gst_tensor_ros_sink_set_signal_rate (GstTensorRosSink *self, guint rate)
 {
   g_return_if_fail (GST_IS_TENSOR_ROS_SINK (self));
 
-  silent_debug ("set signal_rate to %d", rate);
+  silent_debug (self, "set signal_rate to %d", rate);
   g_mutex_lock (&self->mutex);
   self->signal_rate = rate;
   g_mutex_unlock (&self->mutex);
@@ -768,7 +772,7 @@ gst_tensor_ros_sink_set_emit_signal (GstTensorRosSink *self, gboolean emit)
 {
   g_return_if_fail (GST_IS_TENSOR_ROS_SINK (self));
 
-  silent_debug ("set emit_signal to %d", emit);
+  silent_debug (self, "set emit_signal to %d", emit);
   g_mutex_lock (&self->mutex);
   self->emit_signal = emit;
   g_mutex_unlock (&self->mutex);
@@ -799,7 +803,7 @@ gst_tensor_ros_sink_set_silent (GstTensorRosSink *self, gboolean silent)
 {
   g_return_if_fail (GST_IS_TENSOR_ROS_SINK (self));
 
-  silent_debug ("set silent to %d", silent);
+  silent_debug (self, "set silent to %d", silent);
   self->silent = silent;
 }
 
