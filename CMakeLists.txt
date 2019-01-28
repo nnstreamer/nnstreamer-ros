@@ -25,18 +25,17 @@ ELSE(GST_INSTALL_DIR)
 ENDIF(GST_INSTALL_DIR)
 
 FIND_PACKAGE(PkgConfig REQUIRED)
-SET(PKG_MODULES
-    gstreamer-1.0
-    gstreamer-base-1.0
-    gstreamer-controller-1.0
-    gstreamer-video-1.0
-    gstreamer-audio-1.0
-    nnstreamer
+SET(PKG_COMMON_MODULES
     glib-2.0
+    gstreamer-1.0
+    nnstreamer
 )
-PKG_CHECK_MODULES(pkgs REQUIRED ${PKG_MODULES})
+PKG_CHECK_MODULES(PKGS_COMMON REQUIRED ${PKG_COMMON_MODULES})
 
-INCLUDE_DIRECTORIES(./common/include)
+INCLUDE_DIRECTORIES(
+	./common/include
+	${PKGS_COMMON_INCLUDE_DIRS}
+	)
 
 SET(c_flags -Wall -Werror -fPIC -g -std=c89)
 SET(cxx_flags -Wall -Werror -fPIC -g -std=c++11)
