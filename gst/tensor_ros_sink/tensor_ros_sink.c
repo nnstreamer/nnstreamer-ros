@@ -33,7 +33,8 @@
 #endif
 
 #include <nns_ros_bridge.h>
-#include <nnstreamer/tensor_common.h>
+#include <nnstreamer/tensor_typedef.h>
+#include <nnstreamer/nnstreamer_plugin_api.h>
 
 #include "tensor_ros_sink.h"
 

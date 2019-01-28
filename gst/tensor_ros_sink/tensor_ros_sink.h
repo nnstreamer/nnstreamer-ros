@@ -27,9 +27,9 @@
 #ifndef __GST_TENSOR_ROS_SINK_H__
 #define __GST_TENSOR_ROS_SINK_H__
 
-#include <gst/gst.h>
 #include <gst/base/gstbasesink.h>
-#include <nnstreamer/tensor_common.h>
+#include <nnstreamer/tensor_typedef.h>
+#include <nnstreamer/nnstreamer_plugin_api.h>
 
 G_BEGIN_DECLS
 
