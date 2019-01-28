@@ -132,9 +132,9 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
     INCLUDE_DIRS include
-    #  LIBRARIES my_first_ros_pkg
+    LIBRARIES nns_ros_bridge
     CATKIN_DEPENDS roscpp std_msgs message_runtime
-    #  DEPENDS system_lib
+    DEPENDS ${PKGS_COMMON}
     )
 
 SET(CXX_SRC_FILES_NNS_ROS_BRIDGE
@@ -149,7 +149,6 @@ SET(CXX_SRC_FILES_NNS_ROS_BRIDGE
 ## Your package locations should be listed before other locations
 INCLUDE_DIRECTORIES(
     ${catkin_INCLUDE_DIRS}
-    ${pkgs_INCLUDE_DIRS}
     )
 
 ## Declare a C++ library
@@ -182,7 +181,7 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## Specify libraries to link a library or executable target against
 TARGET_LINK_LIBRARIES(nns_ros_bridge
     ${catkin_LIBRARIES}
-    ${pkgs_LIBRARIES}
+    ${PKGS_COMMON_LIBRARIES}
     )
 
 #############
@@ -234,7 +233,7 @@ TARGET_LINK_LIBRARIES(nns_ros_bridge
 # catkin_add_nosetests(test)
 
 INSTALL(TARGETS nns_ros_bridge
-	RUNTIME DESTINATION ${EXEC_PREFIX}
-	LIBRARY DESTINATION ${LIB_INSTALL_DIR}
-	ARCHIVE DESTINATION ${LIB_INSTALL_DIR}
+	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
