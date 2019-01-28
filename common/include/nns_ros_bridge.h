@@ -26,7 +26,8 @@
 #ifndef _NNS_ROS_BRIDGE_H_
 #define _NNS_ROS_BRIDGE_H_
 #include <glib-2.0/glib.h>
-#include <nnstreamer/tensor_common.h>
+#include <nnstreamer/tensor_typedef.h>
+#include <nnstreamer/nnstreamer_plugin_api.h>
 #ifdef __cplusplus
 #include <ros/ros.h>
 #include <std_msgs/MultiArrayLayout.h>
