@@ -20,15 +20,7 @@ FUNCTION(search_pkg_conf_dirs search_paths return_list)
     SET(${return_list} ${all_list} PARENT_SCOPE)
 ENDFUNCTION(search_pkg_conf_dirs)
 
-## Set CMAKE_PREFIX_PATH to kinetic default path
-IF(NOT CMAKE_PREFIX_PATH)
-    set(CMAKE_PREFIX_PATH "/opt/ros/kinetic")
-ENDIF(NOT CMAKE_PREFIX_PATH)
 
-## Configure ROS-related path
-SET(ROS_ROOT "${CMAKE_PREFIX_PATH}/ros")
-SET(ROS_PACKAGE_PATH "${CMAKE_PREFIX_PATH}/share")
-SET(ROS_ETC_DIR "${CMAKE_PREFIX_PATH}/etc/ros")
 search_pkg_conf_dirs (${CMAKE_PREFIX_PATH} pkg_config_path_list)
 FOREACH(each_path ${pkg_config_path_list})
     SET(ENV{PKG_CONFIG_PATH} "${each_path}:$ENV{PKG_CONFIG_PATH}")
@@ -233,7 +225,7 @@ TARGET_LINK_LIBRARIES(nns_ros_bridge
 # catkin_add_nosetests(test)
 
 INSTALL(TARGETS nns_ros_bridge
-	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+	RUNTIME DESTINATION ${ROS_INSTALL_BIN_DIR}
+	LIBRARY DESTINATION ${ROS_INSTALL_LIB_DIR}
+	ARCHIVE DESTINATION ${ROS_INSTALL_LIB_DIR}
 )
