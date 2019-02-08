@@ -34,7 +34,7 @@ cp %{SOURCE1001} .
 
 %build
 %{__ros_setup}
-%__ros_build_pkg "-DLIB_INSTALL_DIR=%{_libdir}"
+%__ros_build_pkg "-DNNS_INSTALL_LIBDIR=%{_libdir}"
 
 %install
 %{__ros_setup}
