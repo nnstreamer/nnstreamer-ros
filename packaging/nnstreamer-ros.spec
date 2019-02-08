@@ -52,6 +52,9 @@ cp %{SOURCE1001} .
 %{__ros_install_path}/share/nns_ros_bridge/package.xml
 %{__ros_install_path}/include/nns_ros_bridge/tensors.h
 %{__ros_install_path}/lib/pkgconfig/nns_ros_bridge.pc
+# pyc
+%exclude %{__ros_install_path}/lib/python2.7/site-packages/nns_ros_bridge/*.pyc
+%exclude %{__ros_install_path}/lib/python2.7/site-packages/nns_ros_bridge/msg/*.pyc
 # nodejs
 %exclude %{__ros_install_path}/share/gennodejs/ros/nns_ros_bridge/msg/*.js
 %exclude %{__ros_install_path}/share/gennodejs/ros/nns_ros_bridge/*.js
