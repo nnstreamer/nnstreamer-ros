@@ -1,29 +1,28 @@
-Name:		nnstreamer-ros
-Summary:	nnstreamer extension plugins for ROS support
-Version:	0.0.1
-Release:	0
-Group:		Applications/Multimedia
-Packager:	Wook Song <wook16.song@samsung.com>
-License:	LGPL-2.1
-Source0:	nnstreamer-ros-%{version}.tar.gz
-Source1001:	nnstreamer-ros.manifest
+Name:       nnstreamer-ros
+Summary:    nnstreamer extension plugins for ROS support
+Version:    0.0.1
+Release:    0
+Group:      Applications/Multimedia
+License:    LGPL-2.1
+Source0:    nnstreamer-ros-%{version}.tar.gz
+Source1001: nnstreamer-ros.manifest
 
-BuildRequires:	cmake
+BuildRequires:  cmake
 # boost
 BuildRequires:  pkg-config
 BuildRequires:  pkgconfig(boost)
 # gstremaer
-BuildRequires:	pkgconfig(gstreamer-1.0)
-BuildRequires:	pkgconfig(gstreamer-base-1.0)
-BuildRequires:	pkgconfig(gstreamer-audio-1.0)
-BuildRequires:	pkgconfig(gstreamer-video-1.0)
+BuildRequires:  pkgconfig(gstreamer-1.0)
+BuildRequires:  pkgconfig(gstreamer-base-1.0)
+BuildRequires:  pkgconfig(gstreamer-audio-1.0)
+BuildRequires:  pkgconfig(gstreamer-video-1.0)
 # nnstreamer
 BuildRequires:  pkgconfig(nnstreamer)
 # ROS
 BuildRequires:  ros-kinetic-catkin
-BuildRequires:	ros-kinetic-genmsg
-BuildRequires:	ros-kinetic-message-generation
-BuildRequires:	ros-kinetic-roscpp
+BuildRequires:  ros-kinetic-genmsg
+BuildRequires:  ros-kinetic-message-generation
+BuildRequires:  ros-kinetic-roscpp
 
 %description
 A set of NNStreamer extension plugins for ROS support
@@ -41,8 +40,8 @@ cp %{SOURCE1001} .
 %{__ros_install}
 
 %files
-%manifest nnstreamer-ros.manifest
 %defattr(-,root,root,-)
+%manifest nnstreamer-ros.manifest
 %license LICENSE
 %{_libdir}/gstreamer-1.0/libtensor_ros_sink.so
 %{__ros_install_path}/lib/libnns_ros_bridge.so
