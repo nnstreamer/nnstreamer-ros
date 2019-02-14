@@ -23,6 +23,8 @@ BuildRequires:  ros-kinetic-catkin
 BuildRequires:  ros-kinetic-genmsg
 BuildRequires:  ros-kinetic-message-generation
 BuildRequires:  ros-kinetic-roscpp
+# tizen
+BuildRequires:  pkgconfig(dlog)
 
 %description
 A set of NNStreamer extension plugins for ROS support
@@ -33,7 +35,7 @@ cp %{SOURCE1001} .
 
 %build
 %{__ros_setup}
-%__ros_build_pkg "-DNNS_INSTALL_LIBDIR=%{_libdir}"
+%__ros_build_pkg '-DTIZEN=ON' '-DNNS_INSTALL_LIBDIR=%{_libdir}' '-DENABLE_TEST=OFF'
 
 %install
 %{__ros_setup}
