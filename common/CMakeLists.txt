@@ -2,38 +2,38 @@ PROJECT(nns_ros_bridge C CXX)
 
 ## Inner functions
 FUNCTION(search_pkg_conf_dir_r_inner search_path return_list)
-    FILE(GLOB_RECURSE new_list ${search_path}/*.pc)
-    SET(dir_list "")
-    FOREACH(file_path ${new_list})
-        GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
-        SET(dir_list ${dir_list} ${dir_path})
-    ENDFOREACH()
+  FILE(GLOB_RECURSE new_list ${search_path}/*.pc)
+  SET(dir_list "")
+  FOREACH(file_path ${new_list})
+    GET_FILENAME_COMPONENT(dir_path ${file_path} PATH)
+    SET(dir_list ${dir_list} ${dir_path})
+  ENDFOREACH()
     LIST(REMOVE_DUPLICATES dir_list)
     SET(${return_list} ${dir_list} PARENT_SCOPE)
 ENDFUNCTION(search_pkg_conf_dir_r_inner)
 
 FUNCTION(search_pkg_conf_dirs search_paths return_list)
-    FOREACH(search_path ${search_paths})
-        search_pkg_conf_dir_r_inner(${search_path} inner_return)
-        SET(all_list ${all_list} ${inner_return})
-    ENDFOREACH()
-    SET(${return_list} ${all_list} PARENT_SCOPE)
+  FOREACH(search_path ${search_paths})
+    search_pkg_conf_dir_r_inner(${search_path} inner_return)
+    SET(all_list ${all_list} ${inner_return})
+  ENDFOREACH()
+  SET(${return_list} ${all_list} PARENT_SCOPE)
 ENDFUNCTION(search_pkg_conf_dirs)
 
 
 search_pkg_conf_dirs (${CMAKE_PREFIX_PATH} pkg_config_path_list)
 FOREACH(each_path ${pkg_config_path_list})
-    SET(ENV{PKG_CONFIG_PATH} "${each_path}:$ENV{PKG_CONFIG_PATH}")
+  SET(ENV{PKG_CONFIG_PATH} "${each_path}:$ENV{PKG_CONFIG_PATH}")
 ENDFOREACH()
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 FIND_PACKAGE(catkin REQUIRED COMPONENTS
-    roscpp
-    std_msgs
-    genmsg
-    )
+  roscpp
+  std_msgs
+  genmsg
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -70,7 +70,7 @@ FIND_PACKAGE(catkin REQUIRED COMPONENTS
 
 ## Generate messages in the 'msg' folder
 add_message_files(FILES
-   tensors.msg
+  tensors.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -89,8 +89,8 @@ add_message_files(FILES
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
-   DEPENDENCIES
-   std_msgs
+  DEPENDENCIES
+  std_msgs
 )
 
 ################################################
@@ -123,15 +123,15 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-    INCLUDE_DIRS include
-    LIBRARIES nns_ros_bridge
-    CATKIN_DEPENDS roscpp std_msgs message_runtime
-    DEPENDS ${PKGS_COMMON}
-    )
+  INCLUDE_DIRS include
+  LIBRARIES nns_ros_bridge
+  CATKIN_DEPENDS roscpp std_msgs message_runtime
+  DEPENDS ${PKGS_COMMON}
+)
 
 SET(CXX_SRC_FILES_NNS_ROS_BRIDGE
-    ./node/nns_ros_bridge.cc
-    )
+ ./node/nns_ros_bridge.cc
+)
 
 ###########
 ## Build ##
@@ -140,8 +140,8 @@ SET(CXX_SRC_FILES_NNS_ROS_BRIDGE
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 INCLUDE_DIRECTORIES(
-    ${catkin_INCLUDE_DIRS}
-    )
+  ${catkin_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -172,9 +172,9 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 
 ## Specify libraries to link a library or executable target against
 TARGET_LINK_LIBRARIES(nns_ros_bridge
-    ${catkin_LIBRARIES}
-    ${PKGS_COMMON_LIBRARIES}
-    )
+  ${catkin_LIBRARIES}
+  ${PKGS_COMMON_LIBRARIES}
+)
 
 #############
 ## Install ##
@@ -225,7 +225,7 @@ TARGET_LINK_LIBRARIES(nns_ros_bridge
 # catkin_add_nosetests(test)
 
 INSTALL(TARGETS nns_ros_bridge
-	RUNTIME DESTINATION ${ROS_INSTALL_BIN_DIR}
-	LIBRARY DESTINATION ${ROS_INSTALL_LIB_DIR}
-	ARCHIVE DESTINATION ${ROS_INSTALL_LIB_DIR}
+  RUNTIME DESTINATION ${ROS_INSTALL_BIN_DIR}
+  LIBRARY DESTINATION ${ROS_INSTALL_LIB_DIR}
+  ARCHIVE DESTINATION ${ROS_INSTALL_LIB_DIR}
 )
