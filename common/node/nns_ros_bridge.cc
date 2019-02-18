@@ -30,6 +30,7 @@
 #include "nns_ros_bridge/tensors.h"
 
 const char BASE_NODE_NAME[] = "tensor_ros_sink";
+const char SELF_NAME[] = "nns_ros_bridge";
 const guint DEFAULT_Q_SIZE = 15;
 
 /**
@@ -44,10 +45,17 @@ NnsRosBridge::NnsRosBridge (const char *node_name, const char *topic_name)
   int dummy_argc = 0;
   char **dummy_argv = NULL;
 
+  if (getenv("ROS_MASTER_URI") == NULL)
+    throw UNDEFINED_ROS_MASTER_URI;
+
   this->str_node_name = std::string (node_name);
   this->str_pub_topic_name = std::string (topic_name);
 
   ros::init (dummy_argc, dummy_argv, this->str_node_name);
+
+  if (!ros::master::check())
+    throw FAILED_TO_CONNECT_ROSCORE;
+
   this->nh_parent = new ros::NodeHandle (BASE_NODE_NAME);
   this->nh_child = new ros::NodeHandle (*(this->nh_parent),
       this->str_node_name);
@@ -149,7 +157,26 @@ gboolean NnsRosBridge::publish (const guint num_tensors,
 void *
 nns_ros_bridge_init (const char *node_name, const char *topic_name)
 {
-  return new NnsRosBridge (node_name, topic_name);
+  try {
+    return new NnsRosBridge (node_name, topic_name);;
+  } catch (const err_code e) {
+    switch (e) {
+      case UNDEFINED_ROS_MASTER_URI:
+        g_critical ("%s: ROS_MASTER_URI is not defined in the environment\n",
+            SELF_NAME);
+        break;
+
+      case FAILED_TO_CONNECT_ROSCORE:
+        g_critical
+            ("%s: failed to connect to master: please make sure roscore is running\n",
+            SELF_NAME);
+        break;
+
+      default:
+        break;
+    }
+    return NULL;
+  }
 }
 
 gboolean

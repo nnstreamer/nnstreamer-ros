@@ -403,6 +403,8 @@ gst_tensor_ros_sink_start (GstBaseSink *sink)
       nns_ros_bridge_init (str_pid, GST_ELEMENT_NAME (GST_ELEMENT (sink)));
   g_free (str_pid);
 
+  if (self->nns_ros_bind_instance == NULL)
+    return FALSE;
   return TRUE;
 }
 
