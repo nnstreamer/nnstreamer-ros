@@ -33,6 +33,11 @@
 #include <std_msgs/MultiArrayLayout.h>
 #include <std_msgs/MultiArrayDimension.h>
 
+typedef enum _err_code {
+  UNDEFINED_ROS_MASTER_URI,
+  FAILED_TO_CONNECT_ROSCORE,
+} err_code;
+
 class NnsRosBridge
 {
 public:
