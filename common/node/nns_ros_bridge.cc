@@ -78,22 +78,21 @@ gboolean NnsRosBridge::setPubTopicInfo (const GstTensorsConfig *conf)
 
   for (guint i = 0; i < this->num_of_tensors_pub; ++i) {
     gsize tensor_size = gst_tensor_info_get_size (&tensors_info->info[i]);
+    guint each_dim_stride = tensor_size;
 
-    for (guint j = 0; j < NNS_TENSOR_RANK_LIMIT; ++j) {
+    for (gint j = (NNS_TENSOR_RANK_LIMIT - 1); j >= 0; --j) {
       std_msgs::MultiArrayDimension each_dim;
       /**
        * FIXME: Since the type of 'stride' of std_msgs::MultiArrayDimension is
        * unsigned int,conversion from size_t to unsigned int is requried.
        */
-      guint each_dim_stride = 1;
-
-      for (guint k = 0; k <= NNS_TENSOR_RANK_LIMIT - (j + 1); ++k) {
-        each_dim_stride *= tensors_info->info[i].dimension[k];
-      }
-      each_dim.stride = each_dim_stride;
       each_dim.label = tensor_element_typename[tensors_info->info[i].type];
       each_dim.size =
-          tensors_info->info[i].dimension[NNS_TENSOR_RANK_LIMIT - (j + 1)];
+          tensors_info->info[i].dimension[j];
+      if (j != (NNS_TENSOR_RANK_LIMIT - 1)) {
+        each_dim_stride /= tensors_info->info[i].dimension[j + 1];
+      }
+      each_dim.stride = each_dim_stride;
 
       this->topic_layouts_pub[i].dim.push_back (each_dim);
     }
