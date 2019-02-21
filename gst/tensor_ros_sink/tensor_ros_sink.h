@@ -68,6 +68,7 @@ struct _GstTensorRosSink
 
   GMutex mutex; /**< mutex for processing */
   gboolean silent; /**< true to print minimized log */
+  gboolean dummy; /**< true to work without roscore */
   gboolean emit_signal; /**< true to emit signal for new data, eos */
   guint signal_rate; /**< new data signals per second */
   GstClockTime last_render_time; /**< buffer rendered time */
