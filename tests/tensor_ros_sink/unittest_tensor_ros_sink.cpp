@@ -30,6 +30,8 @@ TEST (test_tensor_ros_sink, properties)
   gboolean emit_signal, res_emit_signal;
   const gboolean default_silent = TRUE;
   gboolean silent, res_silent;
+  const gboolean default_dummy = FALSE;
+  gboolean dummy, res_dummy;
   GstHarness *hrnss;
 
   hrnss = gst_harness_new ("tensor_ros_sink");
@@ -88,6 +90,14 @@ TEST (test_tensor_ros_sink, properties)
   g_object_set (hrnss->element, "silent", !default_silent, NULL);
   g_object_get (hrnss->element, "silent", &res_silent, NULL);
   EXPECT_EQ (!default_silent, res_silent);
+
+  /** default dummy is FALSE */
+  g_object_get (hrnss->element, "dummy", &dummy, NULL);
+  EXPECT_EQ (default_dummy, dummy);
+
+  g_object_set (hrnss->element, "dummy", !default_dummy, NULL);
+  g_object_get (hrnss->element, "dummy", &res_dummy, NULL);
+  EXPECT_EQ (!default_dummy, res_dummy);
 
   gst_harness_teardown (hrnss);
 }
