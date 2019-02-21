@@ -130,6 +130,8 @@ static void callback_sink_new_data_signal (GstElement* object,
       hrnss = gst_harness_new ("tensor_ros_sink"); \
       ASSERT_TRUE (hrnss != NULL); \
       \
+      g_object_set (hrnss->element, "dummy", TRUE, NULL); \
+      \
       cnt_new_data_signal = 0; \
       sig_id = g_signal_connect (hrnss->element, "new-data", \
           G_CALLBACK (callback_sink_new_data_signal), NULL); \
