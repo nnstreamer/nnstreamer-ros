@@ -135,7 +135,7 @@ static void callback_sink_new_data_signal (GstElement* object,
       cnt_new_data_signal = 0; \
       sig_id = g_signal_connect (hrnss->element, "new-data", \
           G_CALLBACK (callback_sink_new_data_signal), NULL); \
-          ASSERT_TRUE (sig_id > 0); \
+      ASSERT_TRUE (sig_id > 0); \
       \
       snprintf (str_dims, SIZE_STR_BUF, "%u:%u:%u:%u", \
           dims[0], dims[1], dims[2], dims[3]); \
