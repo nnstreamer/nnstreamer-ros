@@ -76,7 +76,8 @@ enum
   PROP_0,
   PROP_SIGNAL_RATE,
   PROP_EMIT_SIGNAL,
-  PROP_SILENT
+  PROP_SILENT,
+  PROP_DUMMY,
 };
 
 /**
@@ -93,6 +94,11 @@ enum
  * @brief Flag to print minimized log.
  */
 #define DEFAULT_SILENT TRUE
+
+/**
+ * @brief Flag to disable the dummy mode
+ */
+#define DEFAULT_DUMMY FALSE
 
 /**
  * @brief Flag for qos event.
@@ -154,6 +160,9 @@ static gboolean gst_tensor_ros_sink_get_emit_signal (GstTensorRosSink * self);
 static void gst_tensor_ros_sink_set_silent (GstTensorRosSink * self,
     gboolean silent);
 static gboolean gst_tensor_ros_sink_get_silent (GstTensorRosSink * self);
+static void gst_tensor_ros_sink_set_dummy (GstTensorRosSink * self,
+    gboolean dummy);
+static gboolean gst_tensor_ros_sink_get_dummy (GstTensorRosSink * self);
 
 #define gst_tensor_ros_sink_parent_class parent_class
 G_DEFINE_TYPE (GstTensorRosSink, gst_tensor_ros_sink, GST_TYPE_BASE_SINK);
@@ -211,6 +220,19 @@ gst_tensor_ros_sink_class_init (GstTensorRosSinkClass *klass)
   g_object_class_install_property (gobject_class, PROP_SILENT,
       g_param_spec_boolean ("silent", "Silent", "Produce verbose output",
           DEFAULT_SILENT, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GstTensorRosSink::dummy:
+   *
+   * The flag to enable/disable dummy mode. If the dummy mode is enabled,
+   * this sink works as the fakesink. In other words, in the dummy mode,
+   * since it does not publish any actual topic, the connection to roscore
+   * is not needed.
+   */
+  g_object_class_install_property (gobject_class, PROP_DUMMY,
+      g_param_spec_boolean ("dummy", "Dummy",
+          "Instead of publishing data through a ROS topic, just consume them",
+          DEFAULT_DUMMY, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * GstTensorRosSink::new-data:
@@ -283,6 +305,8 @@ gst_tensor_ros_sink_init (GstTensorRosSink *self)
   self->signal_rate = DEFAULT_SIGNAL_RATE;
   self->last_render_time = GST_CLOCK_TIME_NONE;
   self->in_caps = NULL;
+  self->nns_ros_bind_instance = NULL;
+  self->dummy = DEFAULT_DUMMY;
 
   /** enable qos */
   gst_base_sink_set_qos_enabled (bsink, DEFAULT_QOS);
@@ -312,6 +336,10 @@ gst_tensor_ros_sink_set_property (GObject *object, guint prop_id,
 
     case PROP_SILENT:
       gst_tensor_ros_sink_set_silent (self, g_value_get_boolean (value));
+      break;
+
+    case PROP_DUMMY:
+      gst_tensor_ros_sink_set_dummy (self, g_value_get_boolean (value));
       break;
 
     default:
@@ -344,6 +372,10 @@ gst_tensor_ros_sink_get_property (GObject *object, guint prop_id,
 
     case PROP_SILENT:
       g_value_set_boolean (value, gst_tensor_ros_sink_get_silent (self));
+      break;
+
+    case PROP_DUMMY:
+      g_value_set_boolean (value, gst_tensor_ros_sink_get_dummy (self));
       break;
 
     default:
@@ -396,15 +428,7 @@ gst_tensor_ros_sink_finalize (GObject *object)
 static gboolean
 gst_tensor_ros_sink_start (GstBaseSink *sink)
 {
-  gint32 pid = getpid ();
-  gchar *str_pid = g_strdup_printf (format_node_name_pid, pid);
-  GstTensorRosSink *self = GST_TENSOR_ROS_SINK (sink);
-  self->nns_ros_bind_instance =
-      nns_ros_bridge_init (str_pid, GST_ELEMENT_NAME (GST_ELEMENT (sink)));
-  g_free (str_pid);
-
-  if (self->nns_ros_bind_instance == NULL)
-    return FALSE;
+  /* DO nothing here */
   return TRUE;
 }
 
@@ -495,9 +519,19 @@ gst_tensor_ros_sink_query (GstBaseSink *sink, GstQuery *query)
 static GstFlowReturn
 gst_tensor_ros_sink_render (GstBaseSink *sink, GstBuffer *buffer)
 {
-  GstTensorRosSink *self;
+  GstTensorRosSink *self = GST_TENSOR_ROS_SINK (sink);
 
-  self = GST_TENSOR_ROS_SINK (sink);
+  if ((!self->dummy) && (self->nns_ros_bind_instance == NULL)) {
+    gint32 pid = getpid ();
+    gchar *str_pid = g_strdup_printf (format_node_name_pid, pid);
+    self->nns_ros_bind_instance =
+        nns_ros_bridge_init (str_pid, GST_ELEMENT_NAME (GST_ELEMENT (sink)));
+    g_free (str_pid);
+    g_return_val_if_fail (self->nns_ros_bind_instance != NULL, GST_FLOW_ERROR);
+    nns_ros_bridge_set_pub_topic (self->nns_ros_bind_instance,
+        &self->in_config);
+  }
+
   g_return_val_if_fail (gst_tensor_ros_sink_render_buffer (self, buffer),
       GST_FLOW_ERROR);
 
@@ -512,13 +546,22 @@ gst_tensor_ros_sink_render (GstBaseSink *sink, GstBuffer *buffer)
 static GstFlowReturn
 gst_tensor_ros_sink_render_list (GstBaseSink *sink, GstBufferList *buffer_list)
 {
-  GstTensorRosSink *self;
+  GstTensorRosSink *self = GST_TENSOR_ROS_SINK (sink);
   GstBuffer *buffer;
-
   guint i;
   guint num_buffers;
 
-  self = GST_TENSOR_ROS_SINK (sink);
+  if ((!self->dummy) && (self->nns_ros_bind_instance == NULL)) {
+    gint32 pid = getpid ();
+    gchar *str_pid = g_strdup_printf (format_node_name_pid, pid);
+    self->nns_ros_bind_instance =
+        nns_ros_bridge_init (str_pid, GST_ELEMENT_NAME (GST_ELEMENT (sink)));
+    g_free (str_pid);
+    g_return_val_if_fail (self->nns_ros_bind_instance != NULL, GST_FLOW_ERROR);
+    nns_ros_bridge_set_pub_topic (self->nns_ros_bind_instance,
+        &self->in_config);
+  }
+
   num_buffers = gst_buffer_list_length (buffer_list);
   for (i = 0; i < num_buffers; i++) {
     buffer = gst_buffer_list_get (buffer_list, i);
@@ -585,7 +628,6 @@ gst_tensor_ros_sink_set_caps (GstBaseSink *sink, GstCaps *caps)
   }
 
   self->in_config = in_conf;
-  nns_ros_bridge_set_pub_topic (self->nns_ros_bind_instance, &self->in_config);
 
   return TRUE;
 }
@@ -631,7 +673,7 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
   GstMapInfo in_info[NNS_TENSOR_SIZE_LIMIT];
   GstMemory *in_mem[NNS_TENSOR_SIZE_LIMIT];
   guint signal_rate;
-  guint num_in_tensors;
+  guint num_in_tensors = 0;
   guint i;
 
   gboolean notify = FALSE;
@@ -639,23 +681,25 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
 
   g_return_val_if_fail (GST_IS_TENSOR_ROS_SINK (self), FALSE);
 
-  num_in_tensors = gst_buffer_n_memory (inbuf);
+  if (!self->dummy) {
+    num_in_tensors = gst_buffer_n_memory (inbuf);
 
-  for (i = 0; i < num_in_tensors; ++i) {
-    in_mem[i] = gst_buffer_peek_memory (inbuf, i);
-    gst_memory_map (in_mem[i], &in_info[i], GST_MAP_READ);
-
-    in_tensors[i].data = in_info[i].data;
-    in_tensors[i].size = in_info[i].size;
-    in_tensors[i].type = self->in_config.info.info[i].type;
-  }
-
-  if (!nns_ros_bridge_publish (self->nns_ros_bind_instance, num_in_tensors,
-      in_tensors)) {
     for (i = 0; i < num_in_tensors; ++i) {
-      gst_memory_unmap (in_mem[i], &in_info[i]);
+      in_mem[i] = gst_buffer_peek_memory (inbuf, i);
+      gst_memory_map (in_mem[i], &in_info[i], GST_MAP_READ);
+
+      in_tensors[i].data = in_info[i].data;
+      in_tensors[i].size = in_info[i].size;
+      in_tensors[i].type = self->in_config.info.info[i].type;
     }
-    return FALSE;
+
+    if (!nns_ros_bridge_publish (self->nns_ros_bind_instance, num_in_tensors,
+        in_tensors)) {
+      for (i = 0; i < num_in_tensors; ++i) {
+        gst_memory_unmap (in_mem[i], &in_info[i]);
+      }
+      return FALSE;
+    }
   }
 
   signal_rate = gst_tensor_ros_sink_get_signal_rate (self);
@@ -698,8 +742,10 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
     }
   }
 
-  for (i = 0; i < num_in_tensors; ++i) {
-    gst_memory_unmap (in_mem[i], &in_info[i]);
+  if (!self->dummy) {
+    for (i = 0; i < num_in_tensors; ++i) {
+      gst_memory_unmap (in_mem[i], &in_info[i]);
+    }
   }
 
   return TRUE;
@@ -819,6 +865,28 @@ gst_tensor_ros_sink_get_silent (GstTensorRosSink *self)
   g_return_val_if_fail (GST_IS_TENSOR_ROS_SINK (self), TRUE);
 
   return self->silent;
+}
+
+/**
+ * @brief Setter for flag dummy
+ */
+static void
+gst_tensor_ros_sink_set_dummy (GstTensorRosSink *self, gboolean dummy)
+{
+  g_return_if_fail (GST_IS_TENSOR_ROS_SINK (self));
+
+  self->dummy = dummy;
+}
+
+/**
+ * @brief Getter for flag dummy
+ */
+static gboolean
+gst_tensor_ros_sink_get_dummy (GstTensorRosSink *self)
+{
+  g_return_val_if_fail (GST_IS_TENSOR_ROS_SINK (self), TRUE);
+
+  return self->dummy;
 }
 
 /**
