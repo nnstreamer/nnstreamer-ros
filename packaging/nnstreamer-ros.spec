@@ -25,6 +25,8 @@ BuildRequires:  ros-kinetic-message-generation
 BuildRequires:  ros-kinetic-roscpp
 # tizen
 BuildRequires:  pkgconfig(dlog)
+# gtest
+BuildRequires:  gtest-devel
 
 %description
 A set of NNStreamer extension plugins for ROS support
@@ -35,11 +37,17 @@ cp %{SOURCE1001} .
 
 %build
 %{__ros_setup}
-%__ros_build_pkg '-DTIZEN=ON' '-DNNS_INSTALL_LIBDIR=%{_libdir}' '-DENABLE_TEST=OFF'
+%__ros_build_pkg '-DTIZEN=ON' '-DNNS_INSTALL_LIBDIR=%{_libdir}' '-DENABLE_TEST=ON'
 
 %install
 %{__ros_setup}
 %{__ros_install}
+
+%check
+pushd build
+export GST_PLUGIN_PATH=$(pwd)/gst/tensor_ros_sink
+make test ARGS=-V
+popd
 
 %files
 %defattr(-,root,root,-)
