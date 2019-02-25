@@ -19,11 +19,12 @@ export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 %:
 	dh $@ --buildsystem=cmake --builddirectory=build --parallel
 
-export ROS_VERSION ?= kinetic
-export ROS_BASE_PREFIX ?= /opt/ros
-export ROS_INSTALL_PREFIX ?= /opt/ros
-export NNS_INSTALL_PREFIX ?= /usr
-export NNS_INSTALL_LIBDIR ?= lib/${DEB_HOST_MULTIARCH}
+export ROS_VERSION = kinetic
+export ROS_BASE_PREFIX = /opt/ros
+export ROS_INSTALL_PREFIX = /opt/ros
+export NNS_INSTALL_PREFIX = /usr
+export NNS_INSTALL_LIBDIR = lib/${DEB_HOST_MULTIARCH}
+export GST_PLUGIN_PATH=${ROOT_DIR}/build/gst/tensor_ros_sink
 
 override_dh_auto_configure:
 	dh_auto_configure -- -DROS_VERSION=${ROS_VERSION} \
@@ -38,6 +39,9 @@ override_dh_shlibdeps:
 
 override_dh_auto_install:
 	dh_auto_install --DESTDIR=$(CURDIR)/debian/tmp --
+
+override_dh_auto_test:
+	cd build && ./tests/tensor_ros_sink/unittest_tensor_ros_sink -V
 
 override_dh_auto_clean:
 	rm -rf build
