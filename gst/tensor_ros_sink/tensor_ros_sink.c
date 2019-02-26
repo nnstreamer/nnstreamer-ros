@@ -428,7 +428,21 @@ gst_tensor_ros_sink_finalize (GObject *object)
 static gboolean
 gst_tensor_ros_sink_start (GstBaseSink *sink)
 {
-  /* DO nothing here */
+  gint32 pid;
+  gchar *str_pid;
+  GstTensorRosSink *self;
+
+  self = GST_TENSOR_ROS_SINK (sink);
+  g_return_val_if_fail (GST_IS_TENSOR_ROS_SINK (self), FALSE);
+  pid = getpid ();
+  str_pid = g_strdup_printf (format_node_name_pid, pid);
+
+  self->nns_ros_bind_instance = nns_ros_bridge_init (str_pid,
+      GST_ELEMENT_NAME (GST_ELEMENT (sink)), self->dummy);
+  g_free (str_pid);
+
+  g_return_val_if_fail (self->nns_ros_bind_instance != NULL, FALSE);
+
   return TRUE;
 }
 
@@ -521,17 +535,6 @@ gst_tensor_ros_sink_render (GstBaseSink *sink, GstBuffer *buffer)
 {
   GstTensorRosSink *self = GST_TENSOR_ROS_SINK (sink);
 
-  if ((!self->dummy) && (self->nns_ros_bind_instance == NULL)) {
-    gint32 pid = getpid ();
-    gchar *str_pid = g_strdup_printf (format_node_name_pid, pid);
-    self->nns_ros_bind_instance =
-        nns_ros_bridge_init (str_pid, GST_ELEMENT_NAME (GST_ELEMENT (sink)));
-    g_free (str_pid);
-    g_return_val_if_fail (self->nns_ros_bind_instance != NULL, GST_FLOW_ERROR);
-    nns_ros_bridge_set_pub_topic (self->nns_ros_bind_instance,
-        &self->in_config);
-  }
-
   g_return_val_if_fail (gst_tensor_ros_sink_render_buffer (self, buffer),
       GST_FLOW_ERROR);
 
@@ -550,17 +553,6 @@ gst_tensor_ros_sink_render_list (GstBaseSink *sink, GstBufferList *buffer_list)
   GstBuffer *buffer;
   guint i;
   guint num_buffers;
-
-  if ((!self->dummy) && (self->nns_ros_bind_instance == NULL)) {
-    gint32 pid = getpid ();
-    gchar *str_pid = g_strdup_printf (format_node_name_pid, pid);
-    self->nns_ros_bind_instance =
-        nns_ros_bridge_init (str_pid, GST_ELEMENT_NAME (GST_ELEMENT (sink)));
-    g_free (str_pid);
-    g_return_val_if_fail (self->nns_ros_bind_instance != NULL, GST_FLOW_ERROR);
-    nns_ros_bridge_set_pub_topic (self->nns_ros_bind_instance,
-        &self->in_config);
-  }
 
   num_buffers = gst_buffer_list_length (buffer_list);
   for (i = 0; i < num_buffers; i++) {
@@ -589,8 +581,7 @@ gst_tensor_ros_sink_read_caps (const GstCaps *caps, GstTensorsConfig *config)
 
   if (!gst_structure_has_name (structure, "other/tensor") &&
       !gst_structure_has_name (structure, "other/tensors")) {
-    GST_ERROR ("The input caps, %s, "
-        "do not match the capabilities of the sink pad\n",
+    GST_ERROR ("The input caps, %s, do not match the capabilities of the sink pad\n",
         gst_structure_get_name (structure));
     return FALSE;
   }
@@ -628,6 +619,8 @@ gst_tensor_ros_sink_set_caps (GstBaseSink *sink, GstCaps *caps)
   }
 
   self->in_config = in_conf;
+  nns_ros_bridge_set_pub_topic (self->nns_ros_bind_instance,
+    &self->in_config);
 
   return TRUE;
 }
@@ -681,25 +674,24 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
 
   g_return_val_if_fail (GST_IS_TENSOR_ROS_SINK (self), FALSE);
 
-  if (!self->dummy) {
-    num_in_tensors = gst_buffer_n_memory (inbuf);
 
+  num_in_tensors = gst_buffer_n_memory (inbuf);
+
+  for (i = 0; i < num_in_tensors; ++i) {
+    in_mem[i] = gst_buffer_peek_memory (inbuf, i);
+    gst_memory_map (in_mem[i], &in_info[i], GST_MAP_READ);
+
+    in_tensors[i].data = in_info[i].data;
+    in_tensors[i].size = in_info[i].size;
+    in_tensors[i].type = self->in_config.info.info[i].type;
+  }
+
+  if ((!self->dummy) && (!nns_ros_bridge_publish (self->nns_ros_bind_instance,
+      num_in_tensors, in_tensors))) {
     for (i = 0; i < num_in_tensors; ++i) {
-      in_mem[i] = gst_buffer_peek_memory (inbuf, i);
-      gst_memory_map (in_mem[i], &in_info[i], GST_MAP_READ);
-
-      in_tensors[i].data = in_info[i].data;
-      in_tensors[i].size = in_info[i].size;
-      in_tensors[i].type = self->in_config.info.info[i].type;
+      gst_memory_unmap (in_mem[i], &in_info[i]);
     }
-
-    if (!nns_ros_bridge_publish (self->nns_ros_bind_instance, num_in_tensors,
-        in_tensors)) {
-      for (i = 0; i < num_in_tensors; ++i) {
-        gst_memory_unmap (in_mem[i], &in_info[i]);
-      }
-      return FALSE;
-    }
+    return FALSE;
   }
 
   signal_rate = gst_tensor_ros_sink_get_signal_rate (self);
@@ -742,10 +734,8 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
     }
   }
 
-  if (!self->dummy) {
-    for (i = 0; i < num_in_tensors; ++i) {
-      gst_memory_unmap (in_mem[i], &in_info[i]);
-    }
+  for (i = 0; i < num_in_tensors; ++i) {
+    gst_memory_unmap (in_mem[i], &in_info[i]);
   }
 
   return TRUE;

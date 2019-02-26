@@ -36,38 +36,41 @@ const guint DEFAULT_Q_SIZE = 15;
 /**
  * @brief	The only public constructor of this class
  * @param[in] node_name : The name of the ROS node under /tensor_ros_sink
- * @param[in]  topic_name : The name of topic what this class concerns
+ * @param[in] topic_name : The name of topic what this class concerns
+ * @param[in] is_dummy_roscore : If TRUE, create the instance without roscore connection
  * @return None
  */
-NnsRosBridge::NnsRosBridge (const char *node_name, const char *topic_name)
+NnsRosBridge::NnsRosBridge (const char *node_name, const char *topic_name,
+    gboolean is_dummy_roscore)
 {
   /* ROS initialization requires command-line arguments */
   int dummy_argc = 0;
   char **dummy_argv = NULL;
 
-  if (getenv("ROS_MASTER_URI") == NULL)
-    throw UNDEFINED_ROS_MASTER_URI;
-
   this->str_node_name = std::string (node_name);
   this->str_pub_topic_name = std::string (topic_name);
-
-  ros::init (dummy_argc, dummy_argv, this->str_node_name);
-
-  if (!ros::master::check())
-    throw FAILED_TO_CONNECT_ROSCORE;
-
-  this->nh_parent = new ros::NodeHandle (BASE_NODE_NAME);
-  this->nh_child = new ros::NodeHandle (*(this->nh_parent),
-      this->str_node_name);
-
   this->ready_to_pub = FALSE;
 
-  /**
-   * The name of published topic would be
-   * /tensor_ros_sink/PID_${PID}/${ElementNameOfTensorRosSink}
-   */
-  this->ros_sink_pub = this->nh_child->advertise<nns_ros_bridge::tensors>(
-      this->str_pub_topic_name, DEFAULT_Q_SIZE);
+  if (!is_dummy_roscore) {
+    if (getenv("ROS_MASTER_URI") == NULL)
+      throw UNDEFINED_ROS_MASTER_URI;
+
+    ros::init (dummy_argc, dummy_argv, this->str_node_name);
+
+    if (!ros::master::check())
+      throw FAILED_TO_CONNECT_ROSCORE;
+
+    this->nh_parent = new ros::NodeHandle (BASE_NODE_NAME);
+    this->nh_child = new ros::NodeHandle (*(this->nh_parent),
+      this->str_node_name);
+
+    /**
+    * The name of published topic would be
+    * /tensor_ros_sink/PID_${PID}/${ElementNameOfTensorRosSink}
+    */
+    this->ros_sink_pub = this->nh_child->advertise<nns_ros_bridge::tensors>(
+        this->str_pub_topic_name, DEFAULT_Q_SIZE);
+  }
 }
 
 /**
@@ -80,7 +83,7 @@ gboolean NnsRosBridge::setPubTopicInfo (const GstTensorsConfig *conf)
   const GstTensorsInfo *tensors_info = &conf->info;
 
   g_return_val_if_fail (tensors_info->num_tensors <= NNS_TENSOR_SIZE_LIMIT,
-    FALSE);
+      FALSE);
 
   this->num_of_tensors_pub = tensors_info->num_tensors;
 
@@ -128,6 +131,7 @@ gboolean NnsRosBridge::publish (const guint num_tensors,
 
   g_return_val_if_fail (ros::ok(), FALSE);
   g_return_val_if_fail (this->ready_to_pub, FALSE);
+  g_printerr ("num_tensors = %u, this->num_of_tensors_pub = %u\n", num_tensors, this->num_of_tensors_pub);
   g_return_val_if_fail (num_tensors == this->num_of_tensors_pub, FALSE);
 
   for (guint i = 0; i < this->num_of_tensors_pub; ++i) {
@@ -140,8 +144,10 @@ gboolean NnsRosBridge::publish (const guint num_tensors,
     tensors_msg.tensors.push_back (each_tensor);
   }
 
-  this->ros_sink_pub.publish (tensors_msg);
-  ros::spinOnce();
+  if (!this->is_dummy_roscore) {
+    this->ros_sink_pub.publish (tensors_msg);
+    ros::spinOnce();
+  }
 
   return TRUE;
 }
@@ -154,10 +160,11 @@ gboolean NnsRosBridge::publish (const guint num_tensors,
  * void type pointer what the nns_ros_bridge_init() function returns).
  */
 void *
-nns_ros_bridge_init (const char *node_name, const char *topic_name)
+nns_ros_bridge_init (const char *node_name, const char *topic_name,
+    gboolean is_dummy_roscore)
 {
   try {
-    return new NnsRosBridge (node_name, topic_name);;
+    return new NnsRosBridge (node_name, topic_name, is_dummy_roscore);
   } catch (const err_code e) {
     switch (e) {
       case UNDEFINED_ROS_MASTER_URI:
