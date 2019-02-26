@@ -41,7 +41,8 @@ typedef enum _err_code {
 class NnsRosBridge
 {
 public:
-  NnsRosBridge (const char *node_name, const char *topic_name);
+  NnsRosBridge (const char *node_name, const char *topic_name,
+      gboolean is_dummy_roscore);
   gboolean publish (const guint num_tensors,
       const GstTensorMemory *tensors_mem);
   gboolean setPubTopicInfo (const GstTensorsConfig *conf);
@@ -55,6 +56,7 @@ private:
   ros::Publisher  ros_sink_pub;
   std::string str_node_name;
   std::string str_pub_topic_name;
+  gboolean is_dummy_roscore;
   // Variables for publish ROS topic
   gboolean ready_to_pub;
   guint num_of_tensors_pub;
@@ -65,7 +67,8 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-void *nns_ros_bridge_init (const char *node_name, const char *topic_name);
+void *nns_ros_bridge_init (const char *node_name, const char *topic_name,
+    gboolean is_dummy_roscore);
 gboolean nns_ros_bridge_publish (void *instance, const guint num_tensors,
     const GstTensorMemory *tensors_mem);
 gboolean nns_ros_bridge_set_pub_topic (void *instance,
