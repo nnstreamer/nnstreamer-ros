@@ -12,13 +12,14 @@
 #include <gst/check/gstharness.h>
 #include <nnstreamer/nnstreamer_plugin_api.h>
 
+#define LAUNCH_LINE_SINK_DUMMY "tensor_ros_sink dummy=TRUE"
+
 /**
  * @brief Test for setting/getting properties of tensor_ros_sink
  */
 TEST (test_tensor_ros_sink, properties)
 {
-  const gchar defualt_name[] = "tensorrossink0";
-  const gchar test_name[] = "test_tensorrossink";
+  const gchar default_name[] = "tensorrossink0";
   gchar *name;
   const gint64 default_max_lateness = -1;
   gint64 max_lateness, res_max_lateness;
@@ -30,75 +31,65 @@ TEST (test_tensor_ros_sink, properties)
   gboolean emit_signal, res_emit_signal;
   const gboolean default_silent = TRUE;
   gboolean silent, res_silent;
-  const gboolean default_dummy = FALSE;
-  gboolean dummy, res_dummy;
   GstHarness *hrnss;
+  GstElement *sink;
 
-  hrnss = gst_harness_new ("tensor_ros_sink");
+  hrnss = gst_harness_new_empty ();
   ASSERT_TRUE (hrnss != NULL);
 
-  /** default name is "tensorrossink0" (default_name) */
-  name = gst_element_get_name (hrnss->element);
-  ASSERT_TRUE (name != NULL);
-  EXPECT_STREQ (defualt_name, name);
-  g_free (name);
+  gst_harness_add_parse (hrnss, LAUNCH_LINE_SINK_DUMMY);
+  sink = gst_harness_find_element (hrnss, "tensor_ros_sink");
+  ASSERT_TRUE (sink != NULL);
 
-  gst_element_set_name (hrnss->element, test_name);
-  name = gst_element_get_name (hrnss->element);
+  /** default name is "tensorrossink0" (default_name) */
+  name = gst_element_get_name (sink);
   ASSERT_TRUE (name != NULL);
-  EXPECT_STREQ (test_name, name);
+  EXPECT_STREQ (default_name, name);
   g_free (name);
 
   /** default max-lateness is -1 (default_max_lateness), which means unlimited time */
-  g_object_get (hrnss->element, "max-lateness", &max_lateness, NULL);
+  g_object_get (sink, "max-lateness", &max_lateness, NULL);
   EXPECT_EQ (default_max_lateness, max_lateness);
 
   max_lateness = 30 * GST_MSECOND;
-  g_object_set (hrnss->element, "max-lateness", max_lateness, NULL);
-  g_object_get (hrnss->element, "max-lateness", &res_max_lateness, NULL);
+  g_object_set (sink, "max-lateness", max_lateness, NULL);
+  g_object_get (sink, "max-lateness", &res_max_lateness, NULL);
   EXPECT_EQ (max_lateness, res_max_lateness);
 
   /** default qos is TRUE (default_qos) */
-  g_object_get (hrnss->element, "qos", &qos, NULL);
+  g_object_get (sink, "qos", &qos, NULL);
   EXPECT_EQ (default_qos, qos);
 
-  g_object_set (hrnss->element, "qos", !default_qos, NULL);
-  g_object_get (hrnss->element, "qos", &res_qos, NULL);
+  g_object_set (sink, "qos", !default_qos, NULL);
+  g_object_get (sink, "qos", &res_qos, NULL);
   EXPECT_EQ (!default_qos, res_qos);
 
   /** default signal-rate is 0 (default_signal_rate) */
-  g_object_get (hrnss->element, "signal-rate", &signal_rate, NULL);
+  g_object_get (sink, "signal-rate", &signal_rate, NULL);
   EXPECT_EQ (default_signal_rate, signal_rate);
 
   signal_rate += 10;
-  g_object_set (hrnss->element, "signal-rate", signal_rate, NULL);
-  g_object_get (hrnss->element, "signal-rate", &res_signal_rate, NULL);
+  g_object_set (sink, "signal-rate", signal_rate, NULL);
+  g_object_get (sink, "signal-rate", &res_signal_rate, NULL);
   EXPECT_EQ (signal_rate, res_signal_rate);
 
   /** default emit-signal is TRUE */
-  g_object_get (hrnss->element, "emit-signal", &emit_signal, NULL);
+  g_object_get (sink, "emit-signal", &emit_signal, NULL);
   EXPECT_EQ (default_emit_signal, emit_signal);
 
-  g_object_set (hrnss->element, "emit-signal", !default_emit_signal, NULL);
-  g_object_get (hrnss->element, "emit-signal", &res_emit_signal, NULL);
+  g_object_set (sink, "emit-signal", !default_emit_signal, NULL);
+  g_object_get (sink, "emit-signal", &res_emit_signal, NULL);
   EXPECT_EQ (!default_emit_signal, res_emit_signal);
 
    /** default silent is TRUE */
-  g_object_get (hrnss->element, "silent", &silent, NULL);
+  g_object_get (sink, "silent", &silent, NULL);
   EXPECT_EQ (default_silent, silent);
 
-  g_object_set (hrnss->element, "silent", !default_silent, NULL);
-  g_object_get (hrnss->element, "silent", &res_silent, NULL);
+  g_object_set (sink, "silent", !default_silent, NULL);
+  g_object_get (sink, "silent", &res_silent, NULL);
   EXPECT_EQ (!default_silent, res_silent);
 
-  /** default dummy is FALSE */
-  g_object_get (hrnss->element, "dummy", &dummy, NULL);
-  EXPECT_EQ (default_dummy, dummy);
-
-  g_object_set (hrnss->element, "dummy", !default_dummy, NULL);
-  g_object_get (hrnss->element, "dummy", &res_dummy, NULL);
-  EXPECT_EQ (!default_dummy, res_dummy);
-
+  g_object_unref (sink);
   gst_harness_teardown (hrnss);
 }
 
@@ -122,18 +113,21 @@ static void callback_sink_new_data_signal (GstElement* object,
       GstTensorConfig config; \
       GstBuffer *in_buf; \
       GstMemory *mem; \
+      GstElement *sink; \
       GstMapInfo info; \
       gsize data_size_in_bytes, num_data_in_buf; \
       gulong sig_id; \
       guint i, b; \
       \
-      hrnss = gst_harness_new ("tensor_ros_sink"); \
+      hrnss = gst_harness_new_empty (); \
       ASSERT_TRUE (hrnss != NULL); \
       \
-      g_object_set (hrnss->element, "dummy", TRUE, NULL); \
+      gst_harness_add_parse (hrnss, LAUNCH_LINE_SINK_DUMMY); \
+      sink = gst_harness_find_element (hrnss, "tensor_ros_sink"); \
+      ASSERT_TRUE (sink != NULL); \
       \
       cnt_new_data_signal = 0; \
-      sig_id = g_signal_connect (hrnss->element, "new-data", \
+      sig_id = g_signal_connect (sink, "new-data", \
           G_CALLBACK (callback_sink_new_data_signal), NULL); \
       ASSERT_TRUE (sig_id > 0); \
       \
@@ -165,7 +159,7 @@ static void callback_sink_new_data_signal (GstElement* object,
       } \
       EXPECT_EQ (num_buffers, cnt_new_data_signal); \
       \
-      g_signal_handler_disconnect (hrnss->element, sig_id); \
+      g_signal_handler_disconnect (sink, sig_id); \
       gst_harness_teardown (hrnss); \
     \
     }
