@@ -81,7 +81,7 @@ TEST (test_tensor_ros_sink, properties)
   g_object_get (sink, "emit-signal", &res_emit_signal, NULL);
   EXPECT_EQ (!default_emit_signal, res_emit_signal);
 
-   /** default silent is TRUE */
+  /** default silent is TRUE */
   g_object_get (sink, "silent", &silent, NULL);
   EXPECT_EQ (default_silent, silent);
 
@@ -160,8 +160,9 @@ static void callback_sink_new_data_signal (GstElement* object,
       EXPECT_EQ (num_buffers, cnt_new_data_signal); \
       \
       g_signal_handler_disconnect (sink, sig_id); \
+      g_object_unref (sink); \
       gst_harness_teardown (hrnss); \
-    \
+      \
     }
 
 /**
