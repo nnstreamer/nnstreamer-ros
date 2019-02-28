@@ -23,8 +23,11 @@ BuildRequires:  ros-kinetic-catkin
 BuildRequires:  ros-kinetic-genmsg
 BuildRequires:  ros-kinetic-message-generation
 BuildRequires:  ros-kinetic-roscpp
+BuildRequires:  ros-kinetic-rosbag
 # tizen
 BuildRequires:  pkgconfig(dlog)
+BuildRequires:  pkgconfig(bzip2)
+BuildRequires:  pkgconfig(liblz4)
 # gtest
 BuildRequires:  gtest-devel
 
