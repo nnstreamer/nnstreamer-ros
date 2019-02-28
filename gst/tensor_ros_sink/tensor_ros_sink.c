@@ -58,6 +58,11 @@ GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_sink_debug);
 #define GST_CAT_DEFAULT gst_tensor_ros_sink_debug
 
 /**
+ * @brief Macro for support to set string-type properties during runtime
+ */
+#define g_free_const(x) g_free((void*)(long)(x))
+
+/**
  * @brief tensor_ros_sink signals.
  */
 enum
@@ -78,6 +83,8 @@ enum
   PROP_EMIT_SIGNAL,
   PROP_SILENT,
   PROP_DUMMY,
+  PROP_SAVE_ROSBAG,
+  PROP_LOCATION,
 };
 
 /**
@@ -99,6 +106,11 @@ enum
  * @brief Flag to disable the dummy mode
  */
 #define DEFAULT_DUMMY FALSE
+
+/**
+ * @brief Flag to disable the save-rosbag mode
+ */
+#define DEFAULT_SAVE_ROSBAG FALSE
 
 /**
  * @brief Flag for qos event.
@@ -163,6 +175,12 @@ static gboolean gst_tensor_ros_sink_get_silent (GstTensorRosSink * self);
 static void gst_tensor_ros_sink_set_dummy (GstTensorRosSink * self,
     gboolean dummy);
 static gboolean gst_tensor_ros_sink_get_dummy (GstTensorRosSink * self);
+static void gst_tensor_ros_sink_set_save_rosbag (GstTensorRosSink * self,
+    gboolean flag);
+static gboolean gst_tensor_ros_sink_get_save_rosbag (GstTensorRosSink * self);
+static gboolean gst_tensor_ros_sink_set_location (GstTensorRosSink * self,
+    const char *location);
+static gchar *gst_tensor_ros_sink_get_location (GstTensorRosSink * self);
 
 #define gst_tensor_ros_sink_parent_class parent_class
 G_DEFINE_TYPE (GstTensorRosSink, gst_tensor_ros_sink, GST_TYPE_BASE_SINK);
@@ -233,6 +251,31 @@ gst_tensor_ros_sink_class_init (GstTensorRosSinkClass *klass)
       g_param_spec_boolean ("dummy", "Dummy",
           "Instead of publishing data through a ROS topic, just consume them",
           DEFAULT_DUMMY, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GstTensorRosSink::enable-save-rosbag:
+   *
+   * The flag to enable/disable save-rosbag mode. If this mode is enabled,
+   * the topic published by tensor_ros_sink is also saved as a rosbag file.
+   * If the location to save is not porvided with the 'location' property,
+   * the rosbag file will be created with the topic name in the current
+   * directory.
+   */
+  g_object_class_install_property (gobject_class, PROP_SAVE_ROSBAG,
+      g_param_spec_boolean ("enable-save-rosbag", "Enable-save-rosbag",
+          "Save a rosbag file with the contents of the publishing topic",
+          DEFAULT_SAVE_ROSBAG, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+  /**
+   * GstTensorRosSink::loction:
+   *
+   * A location of the rosbag file to save. If this is not specified with the
+   * enable-save-rosbag flag, the publishing topic name will be used by default.
+   */
+  g_object_class_install_property (gobject_class, PROP_LOCATION,
+      g_param_spec_string ("location", "Location",
+          "Location of the rosbag file to save", NULL,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
   /**
    * GstTensorRosSink::new-data:
@@ -307,6 +350,9 @@ gst_tensor_ros_sink_init (GstTensorRosSink *self)
   self->in_caps = NULL;
   self->nns_ros_bind_instance = NULL;
   self->dummy = DEFAULT_DUMMY;
+  self->save_rosbag = DEFAULT_SAVE_ROSBAG;
+  self->location = NULL;
+  self->rosbag_to_save = NULL;
 
   /** enable qos */
   gst_base_sink_set_qos_enabled (bsink, DEFAULT_QOS);
@@ -340,6 +386,14 @@ gst_tensor_ros_sink_set_property (GObject *object, guint prop_id,
 
     case PROP_DUMMY:
       gst_tensor_ros_sink_set_dummy (self, g_value_get_boolean (value));
+      break;
+
+    case PROP_SAVE_ROSBAG:
+      gst_tensor_ros_sink_set_save_rosbag (self, g_value_get_boolean (value));
+      break;
+
+    case PROP_LOCATION:
+      gst_tensor_ros_sink_set_location (self, g_value_get_string (value));
       break;
 
     default:
@@ -376,6 +430,14 @@ gst_tensor_ros_sink_get_property (GObject *object, guint prop_id,
 
     case PROP_DUMMY:
       g_value_set_boolean (value, gst_tensor_ros_sink_get_dummy (self));
+      break;
+
+    case PROP_SAVE_ROSBAG:
+      g_value_set_boolean (value, gst_tensor_ros_sink_get_save_rosbag (self));
+      break;
+
+    case PROP_LOCATION:
+      g_value_set_string (value, gst_tensor_ros_sink_get_location (self));
       break;
 
     default:
@@ -416,6 +478,13 @@ gst_tensor_ros_sink_finalize (GObject *object)
   self = GST_TENSOR_ROS_SINK (object);
 
   g_mutex_clear (&self->mutex);
+  g_free (self->location);
+  nns_ros_bridge_close_bag (self->rosbag_to_save);
+  nns_ros_bridge_finalize (self->nns_ros_bind_instance);
+
+  self->location = NULL;
+  self->rosbag_to_save = NULL;
+  self->nns_ros_bind_instance = NULL;
 
   G_OBJECT_CLASS (parent_class)->finalize (object);
 }
@@ -442,6 +511,12 @@ gst_tensor_ros_sink_start (GstBaseSink *sink)
   g_free (str_pid);
 
   g_return_val_if_fail (self->nns_ros_bind_instance != NULL, FALSE);
+  if (self->save_rosbag) {
+    self->rosbag_to_save =
+        nns_ros_bridge_open_writable_bag (self->nns_ros_bind_instance,
+        self->location);
+    g_return_val_if_fail (self->rosbag_to_save != NULL, FALSE);
+  }
 
   return TRUE;
 }
@@ -673,7 +748,8 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
   GstClockTime now = GST_CLOCK_TIME_NONE;
 
   g_return_val_if_fail (GST_IS_TENSOR_ROS_SINK (self), FALSE);
-
+  g_return_val_if_fail (((self->save_rosbag) == (self->rosbag_to_save != NULL)),
+      FALSE);
 
   num_in_tensors = gst_buffer_n_memory (inbuf);
 
@@ -686,8 +762,8 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
     in_tensors[i].type = self->in_config.info.info[i].type;
   }
 
-  if ((!self->dummy) && (!nns_ros_bridge_publish (self->nns_ros_bind_instance,
-      num_in_tensors, in_tensors))) {
+  if ((!nns_ros_bridge_publish (self->nns_ros_bind_instance, num_in_tensors,
+      in_tensors, self->rosbag_to_save))) {
     for (i = 0; i < num_in_tensors; ++i) {
       gst_memory_unmap (in_mem[i], &in_info[i]);
     }
@@ -880,6 +956,59 @@ gst_tensor_ros_sink_get_dummy (GstTensorRosSink *self)
 }
 
 /**
+ * @brief Setter for the enable-save-rosbag flag
+ */
+static void
+gst_tensor_ros_sink_set_save_rosbag (GstTensorRosSink *self, gboolean flag)
+{
+  self->save_rosbag = flag;
+}
+
+/**
+ * @brief Getter for the enable-save-rosbag flag
+ */
+static gboolean
+gst_tensor_ros_sink_get_save_rosbag (GstTensorRosSink *self)
+{
+  return self->save_rosbag;
+}
+
+/**
+ * @brief Setter for the location property
+ */
+static gboolean
+gst_tensor_ros_sink_set_location (GstTensorRosSink *self, const char *location)
+{
+  g_return_val_if_fail (GST_IS_TENSOR_ROS_SINK (self), FALSE);
+
+  if (self->rosbag_to_save) {
+    GST_WARNING_OBJECT (self,
+        "changing \'location\' after opening the target file is not supported\n");
+    return FALSE;
+  }
+
+  g_free_const (self->location);
+  if (location != NULL) {
+    self->location = g_strdup (location);
+  } else {
+    self->location = NULL;
+  }
+
+  return TRUE;
+}
+
+/**
+ * @brief Getter for the location property
+ */
+static gchar *
+gst_tensor_ros_sink_get_location (GstTensorRosSink *self)
+{
+  g_return_val_if_fail (GST_IS_TENSOR_ROS_SINK (self), NULL);
+
+  return self->location;
+}
+
+/**
  * @brief Function to initialize the plugin.
  *
  * See GstPluginInitFunc() for more details.
@@ -904,5 +1033,5 @@ GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
     tensor_ros_sink,
     "Sink element to handle tensor stream",
-    gst_tensor_ros_sink_plugin_init, VERSION, "LGPL", "nnstreamer-ros",
+    gst_tensor_ros_sink_plugin_init, NNS_VERSION, "LGPL", "nnstreamer-ros",
     "https://github.com/nnsuite/nnstreamer-ros");

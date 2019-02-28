@@ -22,7 +22,10 @@
  *
  * @bug     No known bugs.
  */
+#include <time.h>
+
 #include <ros/ros.h>
+#include <rosbag/bag.h>
 #include <std_msgs/MultiArrayLayout.h>
 #include <std_msgs/MultiArrayDimension.h>
 
@@ -50,6 +53,7 @@ NnsRosBridge::NnsRosBridge (const char *node_name, const char *topic_name,
   this->str_node_name = std::string (node_name);
   this->str_pub_topic_name = std::string (topic_name);
   this->ready_to_pub = FALSE;
+  this->is_dummy_roscore = is_dummy_roscore;
 
   if (!is_dummy_roscore) {
     if (getenv("ROS_MASTER_URI") == NULL)
@@ -70,6 +74,15 @@ NnsRosBridge::NnsRosBridge (const char *node_name, const char *topic_name,
     */
     this->ros_sink_pub = this->nh_child->advertise<nns_ros_bridge::tensors>(
         this->str_pub_topic_name, DEFAULT_Q_SIZE);
+  }
+}
+
+NnsRosBridge::~NnsRosBridge ( )
+{
+  if (!this->is_dummy_roscore) {
+    delete this->nh_child;
+    delete this->nh_parent;
+    ros::shutdown ();
   }
 }
 
@@ -125,13 +138,11 @@ gboolean NnsRosBridge::setPubTopicInfo (const GstTensorsConfig *conf)
  * @return TRUE if the configuration is successfully done
  */
 gboolean NnsRosBridge::publish (const guint num_tensors,
-    const GstTensorMemory *tensors_mem)
+    const GstTensorMemory *tensors_mem, rosbag::Bag *bag)
 {
   nns_ros_bridge::tensors tensors_msg;
 
-  g_return_val_if_fail (ros::ok(), FALSE);
   g_return_val_if_fail (this->ready_to_pub, FALSE);
-  g_printerr ("num_tensors = %u, this->num_of_tensors_pub = %u\n", num_tensors, this->num_of_tensors_pub);
   g_return_val_if_fail (num_tensors == this->num_of_tensors_pub, FALSE);
 
   for (guint i = 0; i < this->num_of_tensors_pub; ++i) {
@@ -145,11 +156,29 @@ gboolean NnsRosBridge::publish (const guint num_tensors,
   }
 
   if (!this->is_dummy_roscore) {
+    g_return_val_if_fail (ros::ok(), FALSE);
     this->ros_sink_pub.publish (tensors_msg);
     ros::spinOnce();
   }
 
+  if (bag != NULL) {
+    // TODO: It is better to use the gst-timestamp value corresponding to each tensor_msg
+    timespec ts_now;
+    clock_gettime (CLOCK_REALTIME, &ts_now);
+    ros::Time now_time (ts_now.tv_sec, ts_now.tv_nsec);
+    bag->write (this->str_pub_topic_name, now_time, tensors_msg);
+  }
+
   return TRUE;
+}
+
+/**
+ * @brief	Getter for the publishing topic name
+ * @return The publishing topic name
+ */
+const gchar *NnsRosBridge::getPubTopicName ()
+{
+  return this->str_pub_topic_name.c_str();
 }
 
 /**
@@ -185,13 +214,22 @@ nns_ros_bridge_init (const char *node_name, const char *topic_name,
   }
 }
 
-gboolean
-nns_ros_bridge_publish (void *instance, const guint num_tensors,
-    const GstTensorMemory *tensors_mem)
+void
+nns_ros_bridge_finalize (void *instance)
 {
   NnsRosBridge *nrb_instance = (NnsRosBridge *) instance;
+  if (nrb_instance != NULL)
+    delete nrb_instance;
+}
 
-  return nrb_instance->publish (num_tensors, tensors_mem);
+gboolean
+nns_ros_bridge_publish (void *instance, const guint num_tensors,
+    const GstTensorMemory *tensors_mem, void *bag)
+{
+  NnsRosBridge *nrb_instance = (NnsRosBridge *) instance;
+  rosbag::Bag *bag_instance = (rosbag::Bag *)bag;
+
+  return nrb_instance->publish (num_tensors, tensors_mem, bag_instance);
 }
 
 gboolean
@@ -200,4 +238,45 @@ nns_ros_bridge_set_pub_topic (void *instance, const GstTensorsConfig *conf)
   NnsRosBridge *nrb_instance = (NnsRosBridge *) instance;
 
   return nrb_instance->setPubTopicInfo (conf);
+}
+
+const gchar *
+nns_ros_bridge_get_pub_topic_name (void *instance)
+{
+  NnsRosBridge *nrb_instance = (NnsRosBridge *) instance;
+
+  return nrb_instance->getPubTopicName();
+}
+
+void *
+nns_ros_bridge_open_writable_bag (void * instance, const char *name)
+{
+  rosbag::Bag *bag;
+  char *path_rosbag;
+
+  if (name == NULL || name == '\0') {
+    path_rosbag = g_strdup_printf ("%s.bag",
+        nns_ros_bridge_get_pub_topic_name (instance));
+  } else {
+    path_rosbag = g_strdup (name);
+  }
+
+  try {
+    bag = new rosbag::Bag(std::string (path_rosbag), rosbag::bagmode::Write);
+  } catch (rosbag::BagException e){
+    bag = NULL;
+  }
+  g_free(path_rosbag);
+
+  return (void *)bag;
+}
+
+void
+nns_ros_bridge_close_bag (void *bag)
+{
+  rosbag::Bag *rosbag = (rosbag::Bag *) bag;
+
+  if (rosbag != NULL) {
+    rosbag->close();
+  }
 }

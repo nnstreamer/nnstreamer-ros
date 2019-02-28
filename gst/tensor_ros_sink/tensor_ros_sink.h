@@ -70,6 +70,9 @@ struct _GstTensorRosSink
   gboolean silent; /**< true to print minimized log */
   gboolean dummy; /**< true to work without roscore */
   gboolean emit_signal; /**< true to emit signal for new data, eos */
+  gboolean save_rosbag; /**< true to save contents of the topic to a rosbag file */
+  gchar *location; /**< location of the rosbag file to save */
+  void *rosbag_to_save;
   guint signal_rate; /**< new data signals per second */
   GstClockTime last_render_time; /**< buffer rendered time */
   GstCaps *in_caps; /**< received caps */
