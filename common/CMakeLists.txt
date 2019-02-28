@@ -31,6 +31,7 @@ ENDFOREACH()
 ## is used, also find other catkin packages
 FIND_PACKAGE(catkin REQUIRED COMPONENTS
   roscpp
+  rosbag
   std_msgs
   genmsg
 )
@@ -125,7 +126,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES nns_ros_bridge
-  CATKIN_DEPENDS roscpp std_msgs message_runtime
+  CATKIN_DEPENDS roscpp rosbag std_msgs message_runtime
   DEPENDS ${PKGS_COMMON}
 )
 

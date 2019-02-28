@@ -43,12 +43,13 @@ class NnsRosBridge
 public:
   NnsRosBridge (const char *node_name, const char *topic_name,
       gboolean is_dummy_roscore);
+  ~NnsRosBridge ();
   gboolean publish (const guint num_tensors,
-      const GstTensorMemory *tensors_mem);
+      const GstTensorMemory *tensors_mem, rosbag::Bag *bag);
   gboolean setPubTopicInfo (const GstTensorsConfig *conf);
+  const gchar *getPubTopicName ();
 private:
   NnsRosBridge ();
-  ~NnsRosBridge ();
 
   // Variables for ROS configuration
   ros::NodeHandle *nh_parent;
@@ -69,11 +70,14 @@ extern "C"
 
 void *nns_ros_bridge_init (const char *node_name, const char *topic_name,
     gboolean is_dummy_roscore);
+void nns_ros_bridge_finalize (void *instance);
 gboolean nns_ros_bridge_publish (void *instance, const guint num_tensors,
-    const GstTensorMemory *tensors_mem);
+    const GstTensorMemory *tensors_mem, void *bag);
 gboolean nns_ros_bridge_set_pub_topic (void *instance,
     const GstTensorsConfig *conf);
-
+const gchar *nns_ros_bridge_get_pub_topic_name (void *instance);
+void *nns_ros_bridge_open_writable_bag (void *instance, const char *name);
+void nns_ros_bridge_close_bag (void *bag);
 #ifdef __cplusplus
 };
 #endif /* __cplusplus */
