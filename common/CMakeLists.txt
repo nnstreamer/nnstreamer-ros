@@ -134,6 +134,10 @@ SET(CXX_SRC_FILES_NNS_ROS_BRIDGE
  ./node/nns_ros_bridge.cc
 )
 
+SET(CXX_SRC_FILES_NNS_ROS_SRC
+ ./node/nns_ros_subscriber.cc
+)
+
 ###########
 ## Build ##
 ###########
@@ -160,6 +164,7 @@ INCLUDE_DIRECTORIES(
 ADD_LIBRARY(nns_ros_bridge ${CXX_SRC_FILES_NNS_ROS_BRIDGE})
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+ADD_LIBRARY(nns_ros_subscriber ${CXX_SRC_FILES_NNS_ROS_SRC})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -173,6 +178,11 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 
 ## Specify libraries to link a library or executable target against
 TARGET_LINK_LIBRARIES(nns_ros_bridge
+  ${catkin_LIBRARIES}
+  ${PKGS_COMMON_LIBRARIES}
+)
+
+TARGET_LINK_LIBRARIES(nns_ros_subscriber
   ${catkin_LIBRARIES}
   ${PKGS_COMMON_LIBRARIES}
 )
