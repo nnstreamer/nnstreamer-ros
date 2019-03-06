@@ -1,1 +1,2 @@
 ADD_SUBDIRECTORY(tensor_ros_sink)
+ADD_SUBDIRECTORY(tensor_ros_src)
