@@ -4,10 +4,11 @@ Priority: optional
 Maintainer: MyungJoo Ham <myungjoo.ham@samsung.com>
 Build-Depends: gcc (>=5), cmake, debhelper (>=9),
  libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev, libglib2.0-dev,
- gstreamer1.0-tools, libgtest-dev, ssat, python2.7, nnstreamer-dev,
+ gstreamer1.0-plugins-base, gstreamer1.0-tools,
+ libgtest-dev, ssat, python2.7, nnstreamer-dev,
  ros-kinetic-catkin, ros-kinetic-cmake-modules,
  ros-kinetic-genmsg, ros-kinetic-message-generation,
- ros-kinetic-roscpp
+ ros-kinetic-roscpp, ros-kinetic-rosbag
 Standards-Version: 3.9.7
 Homepage: https://github.com/nnsuite/nnstreamer-ros
 
