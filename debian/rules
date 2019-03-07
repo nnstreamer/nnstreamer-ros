@@ -15,6 +15,7 @@ export DH_VERBOSE = 1
 ROOT_DIR:=$(shell pwd)
 export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+export GST_PLUGIN_PATH=${ROOT_DIR}/build/gst/nnstreamer
 
 %:
 	dh $@ --buildsystem=cmake --builddirectory=build --parallel
@@ -41,7 +42,10 @@ override_dh_auto_install:
 	dh_auto_install --DESTDIR=$(CURDIR)/debian/tmp --
 
 override_dh_auto_test:
-	cd build && ./tests/tensor_ros_sink/unittest_tensor_ros_sink -V
+	cd build && ./tests/tensor_ros_sink/unittest_tensor_ros_sink -V && cd ${ROOT_DIR}
+	. build/devel/setup.sh && cd tests && ssat
 
 override_dh_auto_clean:
 	rm -rf build
+	find . -name *.log | xargs rm -f
+	find . -name *.bag | xargs rm -f

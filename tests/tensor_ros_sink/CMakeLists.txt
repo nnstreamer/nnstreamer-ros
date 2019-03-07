@@ -1,6 +1,7 @@
 SET(PKG_MODULES
   gstreamer-base-1.0
   gstreamer-check-1.0
+  gstreamer-plugins-base-1.0
 )
 
 FIND_LIBRARY(GTEST_LIB gtest)
