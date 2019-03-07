@@ -30,6 +30,9 @@ BuildRequires:  pkgconfig(bzip2)
 BuildRequires:  pkgconfig(liblz4)
 # gtest
 BuildRequires:  gtest-devel
+# Unit Testing Uses SSAT (hhtps://github.com/myungjoo/SSAT.git)
+BuildRequires: ssat
+BuildRequires: python
 
 %description
 A set of NNStreamer extension plugins for ROS support
@@ -50,6 +53,10 @@ cp %{SOURCE1001} .
 pushd build
 export GST_PLUGIN_PATH=$(pwd)/gst/tensor_ros_sink
 make test ARGS=-V
+popd
+pushd tests
+%{__ros_setup}
+ssat -n
 popd
 
 %files
