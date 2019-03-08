@@ -64,6 +64,7 @@ popd
 %manifest nnstreamer-ros.manifest
 %license LICENSE
 %{_libdir}/gstreamer-1.0/libtensor_ros_sink.so
+%{_libdir}/gstreamer-1.0/libtensor_ros_src.so
 %{__ros_install_path}/lib/libnns_ros_bridge.so
 %{__ros_install_path}/lib/python2.7/site-packages/nns_ros_bridge/*
 %{__ros_install_path}/share/nns_ros_bridge/cmake/*
