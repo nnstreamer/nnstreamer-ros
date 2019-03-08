@@ -34,7 +34,7 @@ def get_colors_per_px(colorspace):
 
 ##
 # @brief Get a format string to pass to struct.unpack and the number of bytes per data
-# @param[in] data_type a string indicating the data type such as uint8, uint16...
+# @param[in] data_type a string indicating the data type such as uint8, uint16, u16le, u16be...
 # @param[in] num_data the number of data
 # @param[in] byte_order 0 indicates 'little-endian' and the others indicate 'big-endian' (optional)
 # @return (string_format, num_bytes_per_data)
@@ -50,27 +50,27 @@ def get_unpack_format_and_bytes_per_data(data_type, num_data, byte_order=0):
     unpack_format += str(num_data)
 
     lower_data_type = data_type.lower()
-    if lower_data_type in ['uint8', 'int8']:
+    if lower_data_type in ['uint8', 'int8', 's8', 'u8']:
         bytes_per_data = 1
-        if lower_data_type == 'uint8':
+        if lower_data_type in ['uint8', 'u8']:
             unpack_format += 'B'
         else:
-            unpack_format += 'n'
-    elif lower_data_type in ['uint16', 'int16']:
+            unpack_format += 'b'
+    elif lower_data_type in ['uint16', 'int16', 's16le', 's16be', 'u16le', 'u16be']:
         bytes_per_data = 2
-        if lower_data_type == 'uint16':
+        if lower_data_type in ['uint16', 'U16le', 'U16be']:
             unpack_format += 'H'
         else:
             unpack_format += 'h'
-    elif lower_data_type in ['uint32', 'int32', 'float32']:
+    elif lower_data_type in ['uint32', 'int32', 'float32', 's32le', 's32be', 'u32le', 'u32be', 'f32le', 'f32be']:
         bytes_per_data = 4
-        if lower_data_type == 'uint32':
+        if lower_data_type in ['uint32', 'u32le', 'u32be']:
             unpack_format += 'I'
-        elif lower_data_type == 'int32':
+        elif lower_data_type in ['int32', 's32le', 's32be']:
             unpack_format += 'i'
         else:
             unpack_format += 'f'
-    elif lower_data_type in ['uint64', 'int64', 'float64']:
+    elif lower_data_type in ['uint64', 'int64', 'float64', 'f64le', 'f64be']:
         bytes_per_data = 8
         if lower_data_type == 'uint64':
             unpack_format += 'Q'
@@ -95,7 +95,7 @@ def get_unpack_format_and_bytes_per_data(data_type, num_data, byte_order=0):
 # @return a tuple of data stream in a tensor or None (if it fails)
 
 
-def get_tensor_stream_from_raw(data_type, colorspace, width, height, filename, byte_order=0):
+def get_tensor_stream_from_raw_video(data_type, colorspace, width, height, filename, byte_order=0):
     try:
         file_raw = open(filename, 'rb')
     except IOError:
@@ -191,25 +191,103 @@ def get_tensor_stream_from_bag(filename, byte_order=0):
     return data_stream
 
 
-if len(sys.argv) != 7:
-    exit(1)
+##
+# @brief Compare a file containing raw data for a video frame with a rosbag file corresponding to such raw data file
+# @param[in] argv a list of command-link arguments
 
-filename_raw = sys.argv[1]
-filename_rosbag = sys.argv[2]
-data_type = sys.argv[3]
-colorspace = sys.argv[4]
-width = int(sys.argv[5])
-height = int(sys.argv[6])
 
-data_stream_raw = get_tensor_stream_from_raw(
-    data_type, colorspace, width, height, filename_raw)
-if data_stream_raw is None or len(data_stream_raw) == 0:
-    exit(1)
+def compare_video_raw_and_bag(argv):
+    filename_raw = sys.argv[1]
+    filename_rosbag = sys.argv[2]
+    colorspace = sys.argv[3]
+    data_type = sys.argv[4]
+    width = int(sys.argv[5])
+    height = int(sys.argv[6])
 
-data_stream_bag = get_tensor_stream_from_bag(filename_rosbag)
-if data_stream_bag is None or len(data_stream_bag) == 0:
-    exit(1)
-if data_stream_raw != data_stream_bag:
+    data_stream_raw = get_tensor_stream_from_raw_video(
+        data_type, colorspace, width, height, filename_raw)
+    if data_stream_raw is None or len(data_stream_raw) == 0:
+        exit(1)
+
+    data_stream_bag = get_tensor_stream_from_bag(filename_rosbag)
+    if data_stream_bag is None or len(data_stream_bag) == 0:
+        exit(1)
+    if data_stream_raw != data_stream_bag:
+        exit(1)
+
+##
+# @brief Get a tuple of data stream in a tensor from a raw data file
+# @param[in] data_type a string indicating the data type such as S16LE, S16BE, U16LE, U16BE...
+# @param[in] channels an integer [1..2147483647] indicating the number of channels
+# @param[in] frames_per_tensor an integer indicating the number of frames in a tensor
+# @param[in] byte_order 0 indicates 'little-endian' and the others indicate 'big-endian'
+# @param[in] filename a name of file that contains raw data of the image
+# @return a tuple of data stream in a tensor or None (if it fails)
+
+
+def get_tensor_stream_from_raw_audio(data_type, channels, frames_per_tensor, byte_order, filename):
+    try:
+        file_raw = open(filename, 'rb')
+    except IOError:
+        print('Failed to open the raw data file: {}'.format(filename))
+        return None
+    byte_stream = file_raw.read()
+    file_raw.close()
+
+    num_data = channels * frames_per_tensor
+    unpack_format, bytes_per_data = get_unpack_format_and_bytes_per_data(
+        data_type, num_data, byte_order)
+    if unpack_format is None and bytes_per_data == -1:
+        return None
+
+    size = bytes_per_data * num_data
+    if size != os.path.getsize(filename):
+        print('Failed to verify the raw data file: {}'.format(filename))
+        return None
+    data_stream = struct.unpack_from(unpack_format, byte_stream)
+
+    return data_stream
+
+
+##
+# @brief Compare a file containing raw data for a set of audio frames with a rosbag file corresponding to such raw data file
+# @param[in] argv a list of command-link arguments
+
+
+def compare_audio_raw_and_bag(argv):
+    filename_raw = sys.argv[1]
+    filename_rosbag = sys.argv[2]
+    channels = int(sys.argv[3])
+    data_type = sys.argv[4]
+    frames_per_tensor = int(sys.argv[5])
+
+    byte_order = data_type.find('BE')
+    if byte_order == -1:
+        byte_order = 0
+
+    data_stream_raw = get_tensor_stream_from_raw_audio(
+        data_type, channels, frames_per_tensor, byte_order, filename_raw)
+    if data_stream_raw is None or len(data_stream_raw) == 0:
+        exit(1)
+
+    data_stream_bag = get_tensor_stream_from_bag(filename_rosbag, byte_order)
+    if data_stream_bag is None or len(data_stream_bag) == 0:
+        exit(1)
+    if data_stream_raw != data_stream_bag:
+        exit(1)
+
+
+print(sys.argv[3])
+if sys.argv[3] in ['RGB','BGR', 'RGBx', 'BGRx', 'xRGB', 'xBGR', \
+    'RGBA', 'BGRA', 'ARGB', 'ABGR', 'GRAY8']:
+    if len(sys.argv) != 7:
+        exit(1)
+    compare_video_raw_and_bag(sys.argv)
+elif int(sys.argv[3]) > 0 and int(sys.argv[3]) <= 2147483647:
+    if len(sys.argv) != 6:
+        exit(1)
+    compare_audio_raw_and_bag(sys.argv)
+else:
     exit(1)
 
 exit(0)
