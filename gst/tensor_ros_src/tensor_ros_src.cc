@@ -36,7 +36,7 @@
 #include <string.h>
 
 #include "tensor_ros_src.h"
-#include "tensor_ros_listener.h"
+#include "tensor_ros_listener.hpp"
 
 GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_src_debug);
 #define GST_CAT_DEFAULT gst_tensor_ros_src_debug
@@ -44,8 +44,28 @@ GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_src_debug);
 #define SUPPORTED_CAPS_STRING   "application/octet-stream"
 #define DEFAULT_ROS_QUEUE_SIZE  1000
 
+INIT_ROSLISTENER (Int8);
+INIT_ROSLISTENER (UInt8);
+INIT_ROSLISTENER (Int16);
+INIT_ROSLISTENER (UInt16);
+INIT_ROSLISTENER (Int32);
+INIT_ROSLISTENER (UInt32);
+INIT_ROSLISTENER (Int64);
+INIT_ROSLISTENER (UInt64);
+INIT_ROSLISTENER (Float32);
+INIT_ROSLISTENER (Float64);
+
 /** ROS Listener instance for each type */
 static Int32RosListener *int32RosListener;
+static UInt32RosListener *uint32RosListener;
+static Int8RosListener *int8RosListener;
+static UInt8RosListener *uint8RosListener;
+static Int16RosListener *int16RosListener;
+static UInt16RosListener *uint16RosListener;
+static Int64RosListener *int64RosListener;
+static UInt64RosListener *uint64RosListener;
+static Float32RosListener *float32RosListener;
+static Float64RosListener *float64RosListener;
 
 /**
  * @brief Concrete Ros Subscriber class
@@ -79,12 +99,62 @@ TensorRosSub::RegisterCallback (ros::NodeHandle *nh, ros::Subscriber *sub)
   switch (this->rossrc->datatype) {
     /* TODO: Need to add more types */
     case _NNS_UINT32:
-      GST_DEBUG_OBJECT (rossrc, "Not implementation yet!\n");
+      uint32RosListener = new UInt32RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &UInt32RosListener::Callback, uint32RosListener);
+      break;
+
+    case _NNS_INT8:
+      int8RosListener = new Int8RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &Int8RosListener::Callback, int8RosListener);
+      break;
+
+    case _NNS_UINT8:
+      uint8RosListener = new UInt8RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &UInt8RosListener::Callback, uint8RosListener);
+      break;
+
+    case _NNS_INT16:
+      int16RosListener = new Int16RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &Int16RosListener::Callback, int16RosListener);
+      break;
+
+    case _NNS_UINT16:
+      uint16RosListener = new UInt16RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &UInt16RosListener::Callback, uint16RosListener);
+      break;
+
+    case _NNS_INT64:
+      int64RosListener = new Int64RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &Int64RosListener::Callback, int64RosListener);
+      break;
+
+    case _NNS_UINT64:
+      uint64RosListener = new UInt64RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &UInt64RosListener::Callback, uint64RosListener);
+      break;
+
+    case _NNS_FLOAT32:
+      float32RosListener = new Float32RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &Float32RosListener::Callback, float32RosListener);
+      break;
+
+    case _NNS_FLOAT64:
+      float64RosListener = new Float64RosListener (this->rossrc);
+      *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
+        &Float64RosListener::Callback, float64RosListener);
       break;
 
     case _NNS_INT32:
     default:
-      int32RosListener = new Int32RosListener(this->rossrc);
+      int32RosListener = new Int32RosListener (this->rossrc);
       *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE, 
         &Int32RosListener::Callback, int32RosListener);
       break;
@@ -273,6 +343,36 @@ gst_tensor_ros_src_dispose (GObject * object)
 
   if (rossrc->input_dims)
     g_free (rossrc->input_dims);
+
+  if (uint32RosListener)
+    delete uint32RosListener;
+
+  if (int32RosListener)
+    delete int32RosListener;
+
+  if (int8RosListener)
+    delete int8RosListener;
+
+  if (uint8RosListener)
+    delete uint8RosListener;
+
+  if (int16RosListener)
+    delete int16RosListener;
+
+  if (uint16RosListener)
+    delete uint16RosListener;
+
+  if (int64RosListener)
+    delete int64RosListener;
+
+  if (uint64RosListener)
+    delete uint64RosListener;
+
+  if (float32RosListener)
+    delete float32RosListener;
+
+  if (float64RosListener)
+    delete float64RosListener;
 
   G_OBJECT_CLASS (parent_class)->dispose (object);
 }

@@ -8,7 +8,7 @@ PKG_CHECK_MODULES(PKGS REQUIRED ${ROSSRC_PKG_MODULES})
 
 LINK_DIRECTORIES(${PKGS_LIBRARY_DIRS})
 
-ADD_LIBRARY(tensor_ros_src tensor_ros_src.cc tensor_ros_listener.cc)
+ADD_LIBRARY(tensor_ros_src tensor_ros_src.cc)
 ADD_DEPENDENCIES(tensor_ros_src nns_ros_subscriber)
 TARGET_INCLUDE_DIRECTORIES(tensor_ros_src PRIVATE
   ${PKGS_INCLUDE_DIRS}
