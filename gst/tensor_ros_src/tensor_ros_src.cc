@@ -43,6 +43,7 @@ GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_src_debug);
 
 #define SUPPORTED_CAPS_STRING   "application/octet-stream"
 #define DEFAULT_ROS_QUEUE_SIZE  1000
+#define DEFAULT_LIVE_MODE       TRUE
 
 INIT_ROSLISTENER (Int8);
 INIT_ROSLISTENER (UInt8);
@@ -97,7 +98,6 @@ TensorRosSub::RegisterCallback (ros::NodeHandle *nh, ros::Subscriber *sub)
   GST_DEBUG_OBJECT (this->rossrc, "[%s]", __func__);
 
   switch (this->rossrc->datatype) {
-    /* TODO: Need to add more types */
     case _NNS_UINT32:
       uint32RosListener = new UInt32RosListener (this->rossrc);
       *sub = nh->subscribe (this->topic_name, DEFAULT_ROS_QUEUE_SIZE,
@@ -255,6 +255,19 @@ get_item_count (const gchar* dim_str)
 }
 
 /**
+ *  @brief Set the live opreation mode for live source
+ */
+static void
+set_live_mode (GstBaseSrc * src, gboolean mode)
+{
+  if (gst_base_src_is_live (src) == mode)
+    return ;
+
+  gst_base_src_set_live (src, mode);
+  gst_base_src_set_do_timestamp (src, mode);
+}
+
+/**
  * @brief initialize the rossrc's class
  */
 static void
@@ -322,6 +335,10 @@ gst_tensor_ros_src_init (GstTensorRosSrc * rossrc)
   rossrc->topic_name = NULL;
   rossrc->freq_rate = G_USEC_PER_SEC;
   rossrc->queue = g_async_queue_new ();
+
+  /* set live mode as default */
+  set_live_mode (GST_BASE_SRC (rossrc), DEFAULT_LIVE_MODE);
+  gst_base_src_set_format (GST_BASE_SRC (rossrc), GST_FORMAT_TIME);
 }
 
 /**
@@ -508,18 +525,21 @@ gst_tensor_ros_src_create (GstPushSrc * src, GstBuffer ** buffer)
   gsize size = rossrc->count * tensor_element_size[rossrc->datatype];
 
   /* get item from queue */
-  queue_item = g_async_queue_try_pop (rossrc->queue);
+  while (true) {
+    queue_item = g_async_queue_timeout_pop (rossrc->queue, G_USEC_PER_SEC / rossrc->freq_rate);
+    if (queue_item) {
+      GST_DEBUG_OBJECT (rossrc, "queue_item exists!!!\n");
+      break;
+    }
+    /** @todo Return EOF or error */
+  };
 
   buf = gst_buffer_new ();
   mem = gst_allocator_alloc (NULL, size, NULL);
   gst_memory_map (mem, &info, GST_MAP_WRITE);
 
-  if (queue_item == NULL) {
-    memset (info.data, 0x00, size);
-  } else {
-    info.data = static_cast<guint8 *>(queue_item);
-    info.size = size;
-  }
+  info.data = static_cast<guint8 *>(queue_item);
+  info.size = size;
 
   gst_memory_unmap (mem, &info);
   gst_buffer_append_memory (buf, mem);
