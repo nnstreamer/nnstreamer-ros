@@ -173,7 +173,6 @@ enum
   PROP_TOPIC,       /*<< ROS topic name to subscribe */
   PROP_FREQ_RATE,   /*<< frequency rate to check the published topic */
   PROP_DATATYPE,    /*<< Primitive datatype of ROS topic */
-  PROP_INPUT_DIMS,  /*<< Input dimension of Target ROS topic */
 };
 
 /**
@@ -236,25 +235,6 @@ get_string_type (tensor_type type)
 }
 
 /**
- * @brief Get the total count of input message (e.g. 10:2:1:1 means 20 since 10 * 2 * 1 * 1)
- */
-static guint
-get_item_count (const gchar* dim_str)
-{
-  guint count = 0;
-
-  if (dim_str) {
-    gchar **dims = g_strsplit (dim_str, ":", -1);
-    guint rank = g_strv_length (dims);
-    count = atoi (dims[0]);
-    for (unsigned int i = 1; i < rank; ++i) {
-      count = count * atoi (dims[i]);
-    }
-  }
-  return count;
-}
-
-/**
  *  @brief Set the live opreation mode for live source
  */
 static void
@@ -309,11 +289,6 @@ gst_tensor_ros_src_class_init (GstTensorRosSrcClass * klass)
       "Primitive datatype of target ROS topic", "",
       (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
-  g_object_class_install_property (gobject_class, PROP_INPUT_DIMS,
-    g_param_spec_string ("input", "Input dimension",
-      "Input dimension of target ROS topic", "",
-      (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
-
   gst_element_class_add_static_pad_template (gstelement_class,
     &src_pad_template);
 
@@ -335,6 +310,7 @@ gst_tensor_ros_src_init (GstTensorRosSrc * rossrc)
   rossrc->topic_name = NULL;
   rossrc->freq_rate = G_USEC_PER_SEC;
   rossrc->queue = g_async_queue_new ();
+  rossrc->payload_size = 0;
 
   /* set live mode as default */
   set_live_mode (GST_BASE_SRC (rossrc), DEFAULT_LIVE_MODE);
@@ -357,9 +333,6 @@ gst_tensor_ros_src_dispose (GObject * object)
 
   if (rossrc->topic_name)
     g_free (rossrc->topic_name);
-
-  if (rossrc->input_dims)
-    g_free (rossrc->input_dims);
 
   if (uint32RosListener)
     delete uint32RosListener;
@@ -423,12 +396,6 @@ gst_tensor_ros_src_set_property (GObject * object, guint prop_id,
       GST_DEBUG_OBJECT (rossrc, "Datatype: %s\n", get_string_type(rossrc->datatype));
       break;
 
-    case PROP_INPUT_DIMS:
-      rossrc->input_dims = g_strdup(g_value_get_string (value));
-      rossrc->count = get_item_count (rossrc->input_dims);
-      GST_DEBUG_OBJECT (rossrc, "Item count: %u\n", rossrc->count);
-      break;
-
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -459,10 +426,6 @@ gst_tensor_ros_src_get_property (GObject * object, guint prop_id,
 
     case PROP_DATATYPE:
       g_value_set_string (value, get_string_type(rossrc->datatype));
-      break;
-
-    case PROP_INPUT_DIMS:
-      g_value_set_string (value, rossrc->input_dims);
       break;
 
     default:
@@ -507,7 +470,6 @@ gst_tensor_ros_src_change_state (GstElement * element, GstStateChange transition
     default:
       break;
   }
-
   return ret;
 }
 
@@ -522,7 +484,7 @@ gst_tensor_ros_src_create (GstPushSrc * src, GstBuffer ** buffer)
   GstBuffer *buf = NULL;
   GstMemory *mem;
   GstMapInfo info;
-  gsize size = rossrc->count * tensor_element_size[rossrc->datatype];
+  gsize size = rossrc->payload_size;
 
   /* get item from queue */
   while (true) {
