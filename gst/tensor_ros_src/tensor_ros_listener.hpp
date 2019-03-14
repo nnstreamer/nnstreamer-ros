@@ -43,12 +43,12 @@
 class RosListener {
   protected:
     GstTensorRosSrc *rossrc;    /*<< GstTensorRosSrc instance */
-    int payload_size;           /*<< The payload size of Ros message */
+    gboolean is_initialized;
 
   public:
     RosListener (GstTensorRosSrc *rossrc) {
       this->rossrc = rossrc;
-      this->payload_size = rossrc->count * tensor_element_size[rossrc->datatype];
+      this->is_initialized = false;
     }
 };
 
@@ -57,10 +57,22 @@ class RosListener {
     public: \
       DATATYPE##RosListener (GstTensorRosSrc *rossrc) : RosListener (rossrc) { } \
       void Callback(const std_msgs::DATATYPE##MultiArray msg) { \
-        gpointer queue_item = g_malloc0 (this->payload_size); \
-        std::memcpy (queue_item, msg.data.data(), this->payload_size); \
+        gsize payload_size = msg.layout.dim[0].stride * tensor_element_size[rossrc->datatype]; \
+        g_assert (payload_size != 0); \
+        \
+        if (!this->is_initialized) { \
+          this->rossrc->payload_size = payload_size; \
+          this->is_initialized = true; \
+        } \
+        /* After NNstreamer pipeline is setup and playing, \
+        the payload size of Ros message could not be changed */ \
+        g_assert (payload_size == this->rossrc->payload_size); \
+        \
+        gpointer queue_item = g_malloc0 (payload_size); \
+        std::memcpy (queue_item, msg.data.data(), payload_size); \
         g_async_queue_push (this->rossrc->queue, queue_item); \
-        GST_DEBUG_OBJECT (this->rossrc, "Queue size: %d\n", g_async_queue_length (this->rossrc->queue)); \
+        \
+        GST_DEBUG_OBJECT (this->rossrc, "payload_size: %lu bytes\n", payload_size); \
       } \
   }; \
 

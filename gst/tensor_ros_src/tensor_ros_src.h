@@ -58,9 +58,8 @@ struct _GstTensorRosSrc
   GThread *thread;        /** ros subscribe thread */
 
   gchar *topic_name;      /** ROS topic name to subscribe */
-  gchar *input_dims;      /** input dimemsion of ROS message */
-  guint count;            /** total item count of ROS message */
   tensor_type datatype;   /** Primitive datatype of ROS topic */
+  gsize payload_size;     /** Actual payload size of ROS message */
   gulong freq_rate;       /** frequency rate to check */
 
   GAsyncQueue *queue;     /** data queue */
