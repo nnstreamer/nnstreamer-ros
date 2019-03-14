@@ -41,7 +41,7 @@
 GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_src_debug);
 #define GST_CAT_DEFAULT gst_tensor_ros_src_debug
 
-#define SUPPORTED_CAPS_STRING   "application/octet-stream"
+#define OCTET_STREAM_CAPS_STRING   "application/octet-stream"
 #define DEFAULT_ROS_QUEUE_SIZE  1000
 #define DEFAULT_LIVE_MODE       TRUE
 
@@ -183,7 +183,7 @@ static GstStaticPadTemplate src_pad_template =
 GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (SUPPORTED_CAPS_STRING));
+    GST_STATIC_CAPS (GST_TENSOR_CAP_DEFAULT ";" OCTET_STREAM_CAPS_STRING));
 
 #define gst_tensor_ros_src_parent_class parent_class
 G_DEFINE_TYPE (GstTensorRosSrc, gst_tensor_ros_src, GST_TYPE_PUSH_SRC);
