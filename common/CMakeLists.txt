@@ -130,8 +130,8 @@ catkin_package(
   DEPENDS ${PKGS_COMMON}
 )
 
-SET(CXX_SRC_FILES_NNS_ROS_BRIDGE
- ./node/nns_ros_bridge.cc
+SET(CXX_SRC_FILES_NNS_ROS_PUBLISHER
+ ./node/nns_ros_publisher.cc
 )
 
 SET(CXX_SRC_FILES_NNS_ROS_SRC
@@ -161,10 +161,8 @@ INCLUDE_DIRECTORIES(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 
-ADD_LIBRARY(nns_ros_bridge ${CXX_SRC_FILES_NNS_ROS_BRIDGE})
+ADD_LIBRARY(${PROJECT_NAME} ${CXX_SRC_FILES_NNS_ROS_PUBLISHER} ${CXX_SRC_FILES_NNS_ROS_SRC})
 add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-ADD_LIBRARY(nns_ros_subscriber ${CXX_SRC_FILES_NNS_ROS_SRC})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -177,12 +175,7 @@ ADD_LIBRARY(nns_ros_subscriber ${CXX_SRC_FILES_NNS_ROS_SRC})
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-TARGET_LINK_LIBRARIES(nns_ros_bridge
-  ${catkin_LIBRARIES}
-  ${PKGS_COMMON_LIBRARIES}
-)
-
-TARGET_LINK_LIBRARIES(nns_ros_subscriber
+TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   ${catkin_LIBRARIES}
   ${PKGS_COMMON_LIBRARIES}
 )
@@ -235,7 +228,7 @@ TARGET_LINK_LIBRARIES(nns_ros_subscriber
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-INSTALL(TARGETS nns_ros_bridge
+INSTALL(TARGETS ${PROJECT_NAME}
   RUNTIME DESTINATION ${ROS_INSTALL_BIN_DIR}
   LIBRARY DESTINATION ${ROS_INSTALL_LIB_DIR}
   ARCHIVE DESTINATION ${ROS_INSTALL_LIB_DIR}
