@@ -280,7 +280,7 @@ gst_tensor_ros_src_class_init (GstTensorRosSrcClass * klass)
       (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));
 
   g_object_class_install_property (gobject_class, PROP_FREQ_RATE,
-    g_param_spec_ulong ("freqrate", "Frequency_Rate",
+    g_param_spec_uint64 ("freqrate", "Frequency_Rate",
       "Frequency rate for checking Ros Topic(Hz, Default: 1Hz)",
       1, G_USEC_PER_SEC, 1, G_PARAM_READWRITE));
 
@@ -387,7 +387,7 @@ gst_tensor_ros_src_set_property (GObject * object, guint prop_id,
       break;
 
     case PROP_FREQ_RATE:
-      rossrc->freq_rate = G_USEC_PER_SEC / g_value_get_ulong (value);
+      rossrc->freq_rate = static_cast<gulong>(G_USEC_PER_SEC / g_value_get_uint64 (value));
       GST_DEBUG_OBJECT (rossrc, "Freq Hz: %lu\n", G_USEC_PER_SEC / rossrc->freq_rate);
       break;
 
@@ -421,7 +421,7 @@ gst_tensor_ros_src_get_property (GObject * object, guint prop_id,
       break;
 
     case PROP_FREQ_RATE:
-      g_value_set_ulong (value, G_USEC_PER_SEC / rossrc->freq_rate);
+      g_value_set_uint64 (value, G_USEC_PER_SEC / rossrc->freq_rate);
       break;
 
     case PROP_DATATYPE:
