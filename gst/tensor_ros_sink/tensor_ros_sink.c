@@ -32,7 +32,7 @@
 #include <config.h>
 #endif
 
-#include <nns_ros_bridge.h>
+#include <nns_ros_publisher.h>
 #include <nnstreamer/tensor_typedef.h>
 #include <nnstreamer/nnstreamer_plugin_api.h>
 
@@ -479,8 +479,8 @@ gst_tensor_ros_sink_finalize (GObject *object)
 
   g_mutex_clear (&self->mutex);
   g_free (self->location);
-  nns_ros_bridge_close_bag (self->rosbag_to_save);
-  nns_ros_bridge_finalize (self->nns_ros_bind_instance);
+  nns_ros_publisher_close_bag (self->rosbag_to_save);
+  nns_ros_publisher_finalize (self->nns_ros_bind_instance);
 
   self->location = NULL;
   self->rosbag_to_save = NULL;
@@ -506,14 +506,14 @@ gst_tensor_ros_sink_start (GstBaseSink *sink)
   pid = getpid ();
   str_pid = g_strdup_printf (format_node_name_pid, pid);
 
-  self->nns_ros_bind_instance = nns_ros_bridge_init (str_pid,
+  self->nns_ros_bind_instance = nns_ros_publisher_init (str_pid,
       GST_ELEMENT_NAME (GST_ELEMENT (sink)), self->dummy);
   g_free (str_pid);
 
   g_return_val_if_fail (self->nns_ros_bind_instance != NULL, FALSE);
   if (self->save_rosbag) {
     self->rosbag_to_save =
-        nns_ros_bridge_open_writable_bag (self->nns_ros_bind_instance,
+        nns_ros_publisher_open_writable_bag (self->nns_ros_bind_instance,
         self->location);
     g_return_val_if_fail (self->rosbag_to_save != NULL, FALSE);
   }
@@ -694,7 +694,7 @@ gst_tensor_ros_sink_set_caps (GstBaseSink *sink, GstCaps *caps)
   }
 
   self->in_config = in_conf;
-  nns_ros_bridge_set_pub_topic (self->nns_ros_bind_instance,
+  nns_ros_publisher_set_pub_topic (self->nns_ros_bind_instance,
     &self->in_config);
 
   return TRUE;
@@ -762,7 +762,7 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
     in_tensors[i].type = self->in_config.info.info[i].type;
   }
 
-  if ((!nns_ros_bridge_publish (self->nns_ros_bind_instance, num_in_tensors,
+  if ((!nns_ros_publisher_publish (self->nns_ros_bind_instance, num_in_tensors,
       in_tensors, self->rosbag_to_save))) {
     for (i = 0; i < num_in_tensors; ++i) {
       gst_memory_unmap (in_mem[i], &in_info[i]);

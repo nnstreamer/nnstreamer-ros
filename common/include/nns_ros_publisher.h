@@ -13,18 +13,18 @@
  *
  */
 /**
- * @file   nns_ros_bridge.h
+ * @file   nns_ros_pubisher.h
  * @author Wook Song <wook16.song@samsung.com>
  * @date   11/19/2018
- * @brief  A bridge for ROS support within NNStreamer
+ * @brief  A helper class to support publishing ROS topic within NNStreamer
  *
  * This class bridges between the NNStreamer (C) and ROS frameworks (ROSCPP/C++).
  *
  * @bug     No known bugs.
  */
 
-#ifndef _NNS_ROS_BRIDGE_H_
-#define _NNS_ROS_BRIDGE_H_
+#ifndef _NNS_ROS_PUBLISHER_H_
+#define _NNS_ROS_PUBLISHER_H_
 #include <glib-2.0/glib.h>
 #include <nnstreamer/tensor_typedef.h>
 #include <nnstreamer/nnstreamer_plugin_api.h>
@@ -38,18 +38,18 @@ typedef enum _err_code {
   FAILED_TO_CONNECT_ROSCORE,
 } err_code;
 
-class NnsRosBridge
+class NnsRosPublisher
 {
 public:
-  NnsRosBridge (const char *node_name, const char *topic_name,
+  NnsRosPublisher (const char *node_name, const char *topic_name,
       gboolean is_dummy_roscore);
-  ~NnsRosBridge ();
+  ~NnsRosPublisher ();
   gboolean publish (const guint num_tensors,
       const GstTensorMemory *tensors_mem, rosbag::Bag *bag);
   gboolean setPubTopicInfo (const GstTensorsConfig *conf);
   const gchar *getPubTopicName ();
 private:
-  NnsRosBridge ();
+  NnsRosPublisher ();
 
   // Variables for ROS configuration
   ros::NodeHandle *nh_parent;
@@ -68,17 +68,17 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-void *nns_ros_bridge_init (const char *node_name, const char *topic_name,
+void *nns_ros_publisher_init (const char *node_name, const char *topic_name,
     gboolean is_dummy_roscore);
-void nns_ros_bridge_finalize (void *instance);
-gboolean nns_ros_bridge_publish (void *instance, const guint num_tensors,
+void nns_ros_publisher_finalize (void *instance);
+gboolean nns_ros_publisher_publish (void *instance, const guint num_tensors,
     const GstTensorMemory *tensors_mem, void *bag);
-gboolean nns_ros_bridge_set_pub_topic (void *instance,
+gboolean nns_ros_publisher_set_pub_topic (void *instance,
     const GstTensorsConfig *conf);
-const gchar *nns_ros_bridge_get_pub_topic_name (void *instance);
-void *nns_ros_bridge_open_writable_bag (void *instance, const char *name);
-void nns_ros_bridge_close_bag (void *bag);
+const gchar *nns_ros_publisher_get_pub_topic_name (void *instance);
+void *nns_ros_publisher_open_writable_bag (void *instance, const char *name);
+void nns_ros_publisher_close_bag (void *bag);
 #ifdef __cplusplus
 };
 #endif /* __cplusplus */
-#endif /* _NNS_ROS_BRIDGE_H_ */
+#endif /* _NNS_ROS_PUBLISHER_H_ */

@@ -13,10 +13,10 @@
  *
  */
 /**
- * @file   nns_ros_bridge.cc
+ * @file   nns_ros_publisher.cc
  * @author Wook Song <wook16.song@samsung.com>
  * @date   11/19/2018
- * @brief  A bridge for ROS support within NNStreamer
+ * @brief  A helper class to support publishing ROS topic within NNStreamer
  *
  * This class bridges between the NNStreamer (C) and ROS frameworks (ROSCPP/C++).
  *
@@ -29,11 +29,11 @@
 #include <std_msgs/MultiArrayLayout.h>
 #include <std_msgs/MultiArrayDimension.h>
 
-#include "nns_ros_bridge.h"
+#include "nns_ros_publisher.h"
 #include "nns_ros_bridge/tensors.h"
 
 const char BASE_NODE_NAME[] = "tensor_ros_sink";
-const char SELF_NAME[] = "nns_ros_bridge";
+const char SELF_NAME[] = "nns_ros_publisher";
 const guint DEFAULT_Q_SIZE = 15;
 
 /**
@@ -43,7 +43,7 @@ const guint DEFAULT_Q_SIZE = 15;
  * @param[in] is_dummy_roscore : If TRUE, create the instance without roscore connection
  * @return None
  */
-NnsRosBridge::NnsRosBridge (const char *node_name, const char *topic_name,
+NnsRosPublisher::NnsRosPublisher (const char *node_name, const char *topic_name,
     gboolean is_dummy_roscore)
 {
   /* ROS initialization requires command-line arguments */
@@ -77,7 +77,7 @@ NnsRosBridge::NnsRosBridge (const char *node_name, const char *topic_name,
   }
 }
 
-NnsRosBridge::~NnsRosBridge ( )
+NnsRosPublisher::~NnsRosPublisher ( )
 {
   if (!this->is_dummy_roscore) {
     delete this->nh_child;
@@ -91,7 +91,7 @@ NnsRosBridge::~NnsRosBridge ( )
  * @param[in] conf : The configuration information at the NNStreamer side
  * @return TRUE if the configuration is successfully done
  */
-gboolean NnsRosBridge::setPubTopicInfo (const GstTensorsConfig *conf)
+gboolean NnsRosPublisher::setPubTopicInfo (const GstTensorsConfig *conf)
 {
   const GstTensorsInfo *tensors_info = &conf->info;
 
@@ -137,7 +137,7 @@ gboolean NnsRosBridge::setPubTopicInfo (const GstTensorsConfig *conf)
  * @param[in] tensors_mem : The pointer of containers consists of information and raw data of tensors
  * @return TRUE if the configuration is successfully done
  */
-gboolean NnsRosBridge::publish (const guint num_tensors,
+gboolean NnsRosPublisher::publish (const guint num_tensors,
     const GstTensorMemory *tensors_mem, rosbag::Bag *bag)
 {
   nns_ros_bridge::tensors tensors_msg;
@@ -176,24 +176,24 @@ gboolean NnsRosBridge::publish (const guint num_tensors,
  * @brief	Getter for the publishing topic name
  * @return The publishing topic name
  */
-const gchar *NnsRosBridge::getPubTopicName ()
+const gchar *NnsRosPublisher::getPubTopicName ()
 {
   return this->str_pub_topic_name.c_str();
 }
 
 /**
  * C functions for NNStreamer plugins that want to publish or subscribe
- * ROS topics. nns_ros_bridge_init() should be invoked before configuring the
+ * ROS topics. nns_ros_publisher_init() should be invoked before configuring the
  * tensors information to publish or subscribe. Each NNStreamer plugin which
- * uses this class should be holding the instance of NnsRosBridge (i.e., the
- * void type pointer what the nns_ros_bridge_init() function returns).
+ * uses this class should be holding the instance of NnsRosPublisher (i.e., the
+ * void type pointer what the nns_ros_publisher_init() function returns).
  */
 void *
-nns_ros_bridge_init (const char *node_name, const char *topic_name,
+nns_ros_publisher_init (const char *node_name, const char *topic_name,
     gboolean is_dummy_roscore)
 {
   try {
-    return new NnsRosBridge (node_name, topic_name, is_dummy_roscore);
+    return new NnsRosPublisher (node_name, topic_name, is_dummy_roscore);
   } catch (const err_code e) {
     switch (e) {
       case UNDEFINED_ROS_MASTER_URI:
@@ -215,48 +215,48 @@ nns_ros_bridge_init (const char *node_name, const char *topic_name,
 }
 
 void
-nns_ros_bridge_finalize (void *instance)
+nns_ros_publisher_finalize (void *instance)
 {
-  NnsRosBridge *nrb_instance = (NnsRosBridge *) instance;
-  if (nrb_instance != NULL)
-    delete nrb_instance;
+  NnsRosPublisher *nrp_instance = (NnsRosPublisher *) instance;
+  if (nrp_instance != NULL)
+    delete nrp_instance;
 }
 
 gboolean
-nns_ros_bridge_publish (void *instance, const guint num_tensors,
+nns_ros_publisher_publish (void *instance, const guint num_tensors,
     const GstTensorMemory *tensors_mem, void *bag)
 {
-  NnsRosBridge *nrb_instance = (NnsRosBridge *) instance;
+  NnsRosPublisher *nrp_instance = (NnsRosPublisher *) instance;
   rosbag::Bag *bag_instance = (rosbag::Bag *)bag;
 
-  return nrb_instance->publish (num_tensors, tensors_mem, bag_instance);
+  return nrp_instance->publish (num_tensors, tensors_mem, bag_instance);
 }
 
 gboolean
-nns_ros_bridge_set_pub_topic (void *instance, const GstTensorsConfig *conf)
+nns_ros_publisher_set_pub_topic (void *instance, const GstTensorsConfig *conf)
 {
-  NnsRosBridge *nrb_instance = (NnsRosBridge *) instance;
+  NnsRosPublisher *nrp_instance = (NnsRosPublisher *) instance;
 
-  return nrb_instance->setPubTopicInfo (conf);
+  return nrp_instance->setPubTopicInfo (conf);
 }
 
 const gchar *
-nns_ros_bridge_get_pub_topic_name (void *instance)
+nns_ros_publisher_get_pub_topic_name (void *instance)
 {
-  NnsRosBridge *nrb_instance = (NnsRosBridge *) instance;
+  NnsRosPublisher *nrp_instance = (NnsRosPublisher *) instance;
 
-  return nrb_instance->getPubTopicName();
+  return nrp_instance->getPubTopicName();
 }
 
 void *
-nns_ros_bridge_open_writable_bag (void * instance, const char *name)
+nns_ros_publisher_open_writable_bag (void * instance, const char *name)
 {
   rosbag::Bag *bag;
   char *path_rosbag;
 
   if (name == NULL || name == '\0') {
     path_rosbag = g_strdup_printf ("%s.bag",
-        nns_ros_bridge_get_pub_topic_name (instance));
+        nns_ros_publisher_get_pub_topic_name (instance));
   } else {
     path_rosbag = g_strdup (name);
   }
@@ -272,7 +272,7 @@ nns_ros_bridge_open_writable_bag (void * instance, const char *name)
 }
 
 void
-nns_ros_bridge_close_bag (void *bag)
+nns_ros_publisher_close_bag (void *bag)
 {
   rosbag::Bag *rosbag = (rosbag::Bag *) bag;
 
