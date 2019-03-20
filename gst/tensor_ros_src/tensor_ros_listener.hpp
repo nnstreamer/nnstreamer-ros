@@ -72,7 +72,7 @@ class RosListener {
         std::memcpy (queue_item, msg.data.data(), payload_size); \
         g_async_queue_push (this->rossrc->queue, queue_item); \
         \
-        GST_DEBUG_OBJECT (this->rossrc, "payload_size: %lu bytes\n", payload_size); \
+        GST_DEBUG_OBJECT (this->rossrc, "payload_size: %" G_GSIZE_FORMAT " bytes\n", payload_size); \
       } \
   }; \
 
