@@ -38,12 +38,33 @@
 #include "tensor_ros_src.h"
 #include "tensor_ros_listener.hpp"
 
+/**
+ * @brief Macro for debug mode.
+ */
+#ifndef DBG
+#define DBG (!rossrc->silent)
+#endif
+
+/**
+ * @brief Macro for debug message.
+ */
+#define silent_debug(SELF, ...) do { \
+    if (DBG) { \
+      GST_DEBUG_OBJECT (SELF, __VA_ARGS__); \
+    } \
+  } while (0)
+
 GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_src_debug);
 #define GST_CAT_DEFAULT gst_tensor_ros_src_debug
 
 #define OCTET_STREAM_CAPS_STRING   "application/octet-stream"
 #define DEFAULT_ROS_QUEUE_SIZE  1000
 #define DEFAULT_LIVE_MODE       TRUE
+
+/**
+ * @brief Flag to print minimized log.
+ */
+#define DEFAULT_SILENT TRUE
 
 INIT_ROSLISTENER (Int8);
 INIT_ROSLISTENER (UInt8);
@@ -95,7 +116,7 @@ class TensorRosSub : public NnsRosSubscriber {
 int
 TensorRosSub::RegisterCallback (ros::NodeHandle *nh, ros::Subscriber *sub)
 {
-  GST_DEBUG_OBJECT (this->rossrc, "[%s]", __func__);
+  silent_debug (this->rossrc, "[%s]", __func__);
 
   switch (this->rossrc->datatype) {
     case _NNS_UINT32:
@@ -306,7 +327,7 @@ static void
 gst_tensor_ros_src_init (GstTensorRosSrc * rossrc)
 {
   /* set the default properties */
-  rossrc->silent = FALSE;
+  rossrc->silent = DEFAULT_SILENT;
   rossrc->topic_name = NULL;
   rossrc->freq_rate = G_USEC_PER_SEC;
   rossrc->queue = g_async_queue_new ();
@@ -379,21 +400,22 @@ gst_tensor_ros_src_set_property (GObject * object, guint prop_id,
   switch (prop_id) {
     case PROP_SILENT:
       rossrc->silent = g_value_get_boolean (value);
+      silent_debug (rossrc, "Silent Mode: %s\n", rossrc->silent ? "true" : "false");
       break;
 
     case PROP_TOPIC:
       rossrc->topic_name = g_strdup(g_value_get_string (value));
-      GST_DEBUG_OBJECT (rossrc, "topic name: %s\n", rossrc->topic_name);
+      silent_debug (rossrc, "topic name: %s\n", rossrc->topic_name);
       break;
 
     case PROP_FREQ_RATE:
       rossrc->freq_rate = static_cast<gulong>(G_USEC_PER_SEC / g_value_get_uint64 (value));
-      GST_DEBUG_OBJECT (rossrc, "Freq Hz: %lu\n", G_USEC_PER_SEC / rossrc->freq_rate);
+      silent_debug (rossrc, "Freq Hz: %lu\n", G_USEC_PER_SEC / rossrc->freq_rate);
       break;
 
     case PROP_DATATYPE:
       rossrc->datatype = get_tensor_type (g_value_get_string (value));
-      GST_DEBUG_OBJECT (rossrc, "Datatype: %s\n", get_string_type(rossrc->datatype));
+      silent_debug (rossrc, "Datatype: %s\n", get_string_type(rossrc->datatype));
       break;
 
     default:
@@ -447,7 +469,7 @@ gst_tensor_ros_src_change_state (GstElement * element, GstStateChange transition
   switch (transition) {
     case GST_STATE_CHANGE_NULL_TO_READY:
       /* create thread */
-      GST_DEBUG_OBJECT (rossrc, "State is changed: GST_STATE_CHANGE_NULL_TO_READY\n");
+      silent_debug (rossrc, "State is changed: GST_STATE_CHANGE_NULL_TO_READY\n");
       rossrc->ros_sub = new TensorRosSub ("TensorRosSub", rossrc->topic_name,
         rossrc, rossrc->freq_rate);
       rossrc->ros_sub->Start (&rossrc->thread);
@@ -463,7 +485,7 @@ gst_tensor_ros_src_change_state (GstElement * element, GstStateChange transition
   switch (transition) {
     case GST_STATE_CHANGE_READY_TO_NULL:
       /* stop thread */
-      GST_DEBUG_OBJECT (rossrc, "State is changed: GST_STATE_CHANGE_READY_TO_NULL\n");
+      silent_debug (rossrc, "State is changed: GST_STATE_CHANGE_READY_TO_NULL\n");
       rossrc->ros_sub->RequestStop ();
       break;
 
@@ -490,7 +512,7 @@ gst_tensor_ros_src_create (GstPushSrc * src, GstBuffer ** buffer)
   while (true) {
     queue_item = g_async_queue_timeout_pop (rossrc->queue, G_USEC_PER_SEC / rossrc->freq_rate);
     if (queue_item) {
-      GST_DEBUG_OBJECT (rossrc, "queue_item exists!!!\n");
+      silent_debug (rossrc, "queue_item exists!!!\n");
       break;
     }
     /** @todo Return EOF or error */
@@ -507,7 +529,7 @@ gst_tensor_ros_src_create (GstPushSrc * src, GstBuffer ** buffer)
   gst_buffer_append_memory (buf, mem);
 
   *buffer = buf;
-  GST_DEBUG_OBJECT (rossrc, "Buffer of TensorRosSrc is pushed! (queue size: %d)\n",
+  silent_debug (rossrc, "Buffer of TensorRosSrc is pushed! (queue size: %d)\n",
     g_async_queue_length (rossrc->queue));
 
   return GST_FLOW_OK;
