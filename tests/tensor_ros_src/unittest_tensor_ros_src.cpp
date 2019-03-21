@@ -26,6 +26,8 @@ TEST (test_tensor_ros_src, properties)
   GstElement *rossrc = NULL;
   gchar *name;
   const gchar default_name[] = "tensorrossrc0";
+  const gboolean default_silent = TRUE;
+  gboolean silent, ret_silent;
   const gchar *topic_name = "test_topic";
   gchar *ret_topic_name;
   guint64 freqrate;
@@ -44,6 +46,14 @@ TEST (test_tensor_ros_src, properties)
   ASSERT_TRUE (name != NULL);
   EXPECT_STREQ (default_name, name);
   g_free (name);
+
+  /* silent mode test */
+  g_object_get (rossrc, "silent", &ret_silent, NULL);
+  EXPECT_EQ (ret_silent, default_silent);
+  silent = FALSE;
+  g_object_set (rossrc, "silent", silent, NULL);
+  g_object_get (rossrc, "silent", &ret_silent, NULL);
+  EXPECT_EQ (silent, ret_silent);
 
   /* topic name test */
   g_object_set (rossrc, "topic", topic_name, NULL);
