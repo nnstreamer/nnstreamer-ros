@@ -505,7 +505,6 @@ gst_tensor_ros_src_create (GstPushSrc * src, GstBuffer ** buffer)
   GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (src);
   GstBuffer *buf = NULL;
   GstMemory *mem;
-  GstMapInfo info;
   gsize size = rossrc->payload_size;
 
   /* get item from queue */
@@ -518,17 +517,13 @@ gst_tensor_ros_src_create (GstPushSrc * src, GstBuffer ** buffer)
     /** @todo Return EOF or error */
   };
 
+  /** Use the pre-allocated memory data instead of copying memory space */
   buf = gst_buffer_new ();
-  mem = gst_allocator_alloc (NULL, size, NULL);
-  gst_memory_map (mem, &info, GST_MAP_WRITE);
-
-  info.data = static_cast<guint8 *>(queue_item);
-  info.size = size;
-
-  gst_memory_unmap (mem, &info);
+  mem = gst_memory_new_wrapped (GST_MEMORY_FLAG_NO_SHARE, queue_item, size,
+          0, size, queue_item, g_free);
   gst_buffer_append_memory (buf, mem);
-
   *buffer = buf;
+
   silent_debug (rossrc, "Buffer of TensorRosSrc is pushed! (queue size: %d)\n",
     g_async_queue_length (rossrc->queue));
 
