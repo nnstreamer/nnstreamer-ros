@@ -1,8 +1,9 @@
+
 [![GitHub license](https://img.shields.io/github/license/nnsuite/nnstreamer-ros.svg?style=plastic)](./LICENSE)
 
 # NNStreamer-ROS
 
-NNStreamer-ROS is a set of NNStreamer extension plugins for [ROS Kinetic Kame](http://wiki.ros.org/kinetic) support.
+[![Code Coverage](http://nnsuite.mooo.com/nnstreamer-ros/ci/badge/codecoverage.svg)](http://nnsuite.mooo.com/nnstreamer-ros/ci/gcov_html/index.html)
 
 ## Official Releases
 
