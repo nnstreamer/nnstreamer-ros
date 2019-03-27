@@ -61,7 +61,20 @@ class RosListener {
         g_assert (payload_size != 0); \
         \
         if (!this->is_initialized) { \
+          gint i; \
           this->rossrc->payload_size = payload_size; \
+          \
+          /* Set TensorConfig based on Ros message */ \
+          for (i = 0; i < NNS_TENSOR_RANK_LIMIT; ++i) \
+            this->rossrc->config.info.dimension[i] = 1; \
+          \
+          for (i = 0; i < NNS_TENSOR_RANK_LIMIT; ++i) { \
+            if (msg.layout.dim[i].size == 1) \
+            break; \
+          this->rossrc->config.info.dimension[i] = msg.layout.dim[i].size; \
+          } \
+          this->rossrc->config.info.type =  this->rossrc->datatype; \
+          this->rossrc->configured = true; \
           this->is_initialized = true; \
         } \
         /* After NNstreamer pipeline is setup and playing, \

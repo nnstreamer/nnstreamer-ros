@@ -53,7 +53,8 @@ struct _GstTensorRosSrc
 {
   GstPushSrc parent;
 
-  GstCaps *caps;
+  GstTensorConfig config; /** Output Tensor configuration */
+  gboolean configured;    /** is configured based on Ros message */
   gboolean silent;
   GThread *thread;        /** ros subscribe thread */
 

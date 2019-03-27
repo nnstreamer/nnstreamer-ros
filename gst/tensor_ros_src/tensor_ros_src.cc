@@ -32,7 +32,8 @@
 #  include <config.h>
 #endif
 
-#include <tensor_typedef.h>
+#include <nnstreamer/tensor_typedef.h>
+#include <nnstreamer/nnstreamer_plugin_api.h>
 #include <string.h>
 
 #include "tensor_ros_src.h"
@@ -215,9 +216,17 @@ static void gst_tensor_ros_src_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec);
 static void gst_tensor_ros_src_dispose (GObject * object);
 
-/** GstElement method implementation */
-static GstStateChangeReturn
-gst_tensor_ros_src_change_state (GstElement * element, GstStateChange transition);
+/** GstBaseSrc method implementation */
+static gboolean
+gst_tensor_ros_src_start (GstBaseSrc * src);
+static gboolean
+gst_tensor_ros_src_stop (GstBaseSrc * src);
+static GstCaps *
+gst_tensor_ros_src_get_caps (GstBaseSrc * src, GstCaps * filter);
+static gboolean
+gst_tensor_ros_src_set_caps (GstBaseSrc * src, GstCaps * caps);
+static GstCaps *
+gst_tensor_ros_src_fixate (GstBaseSrc * src, GstCaps * caps);
 
 /** GstPushSrc method implementation */
 static GstFlowReturn 
@@ -276,6 +285,7 @@ gst_tensor_ros_src_class_init (GstTensorRosSrcClass * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstElementClass *gstelement_class = GST_ELEMENT_CLASS (klass);
+  GstBaseSrcClass *gstbasesrc_class = GST_BASE_SRC_CLASS (klass);
   GstPushSrcClass *gstpushsrc_class = GST_PUSH_SRC_CLASS (klass);
 
   /* GObject method */
@@ -283,9 +293,12 @@ gst_tensor_ros_src_class_init (GstTensorRosSrcClass * klass)
   gobject_class->get_property = gst_tensor_ros_src_get_property;
   gobject_class->dispose = gst_tensor_ros_src_dispose;  
 
-  /* GstElement method for state change */
-  gstelement_class->change_state =
-    GST_DEBUG_FUNCPTR (gst_tensor_ros_src_change_state);
+  /* GstBaseSrc method */
+  gstbasesrc_class->start = GST_DEBUG_FUNCPTR (gst_tensor_ros_src_start);
+  gstbasesrc_class->stop = GST_DEBUG_FUNCPTR (gst_tensor_ros_src_stop);
+  gstbasesrc_class->set_caps = GST_DEBUG_FUNCPTR (gst_tensor_ros_src_set_caps);
+  gstbasesrc_class->get_caps = GST_DEBUG_FUNCPTR (gst_tensor_ros_src_get_caps);
+  gstbasesrc_class->fixate = GST_DEBUG_FUNCPTR (gst_tensor_ros_src_fixate);
 
   /* GstPushSrc method */
   gstpushsrc_class->create = gst_tensor_ros_src_create;
@@ -332,6 +345,7 @@ gst_tensor_ros_src_init (GstTensorRosSrc * rossrc)
   rossrc->freq_rate = G_USEC_PER_SEC;
   rossrc->queue = g_async_queue_new ();
   rossrc->payload_size = 0;
+  rossrc->configured = FALSE;
 
   /* set live mode as default */
   set_live_mode (GST_BASE_SRC (rossrc), DEFAULT_LIVE_MODE);
@@ -345,9 +359,6 @@ static void
 gst_tensor_ros_src_dispose (GObject * object)
 {
   GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (object);
-
-  if (rossrc->caps)
-    gst_caps_unref (rossrc->caps);
 
   if (rossrc->queue)
     g_async_queue_unref (rossrc->queue);
@@ -386,6 +397,97 @@ gst_tensor_ros_src_dispose (GObject * object)
     delete float64RosListener;
 
   G_OBJECT_CLASS (parent_class)->dispose (object);
+}
+
+/**
+ * @brief Start handler
+ */
+static gboolean
+gst_tensor_ros_src_start (GstBaseSrc * src)
+{
+  GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (src);
+
+  silent_debug (rossrc, "start RosSubscriber");
+  rossrc->ros_sub = new TensorRosSub ("TensorRosSub", rossrc->topic_name,
+    rossrc, rossrc->freq_rate);
+  rossrc->ros_sub->Start (&rossrc->thread);
+
+  while (!rossrc->configured)
+    g_usleep (G_USEC_PER_SEC / rossrc->freq_rate);
+
+  gst_base_src_start_complete (src, GST_FLOW_OK);
+  silent_debug (rossrc, "tensor configuration is completed");
+  return TRUE;
+}
+
+/**
+ * @brief Stop handler
+ */
+static gboolean
+gst_tensor_ros_src_stop (GstBaseSrc * src)
+{
+  GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (src);
+
+  silent_debug (rossrc, "stop RosSubscriber");
+  rossrc->ros_sub->RequestStop ();
+  return TRUE;
+}
+
+/**
+ * @brief Get caps handler
+ */
+static GstCaps *
+gst_tensor_ros_src_get_caps (GstBaseSrc * src, GstCaps * filter)
+{
+  GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (src);
+  GstCaps *caps;
+
+  caps = gst_pad_get_current_caps (src->srcpad);
+  if (caps == NULL)
+    caps = gst_pad_get_pad_template_caps (src->srcpad);
+
+  if (filter) {
+    GstCaps *intersection;
+    intersection = gst_caps_intersect_full (filter, caps, GST_CAPS_INTERSECT_FIRST);
+    gst_caps_unref (caps);
+    caps = intersection;
+  }
+
+  silent_debug (rossrc, "caps: %" GST_PTR_FORMAT, caps);
+  // gst_caps_replace (&rossrc->caps, caps);
+
+  return caps;
+}
+
+/**
+ * @brief Set caps handler
+ */
+static gboolean
+gst_tensor_ros_src_set_caps (GstBaseSrc * src, GstCaps * caps)
+{
+  GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (src);
+
+  gst_pad_set_caps (src->srcpad, caps);
+  silent_debug (rossrc, "set caps: %" GST_PTR_FORMAT, caps);
+
+  return TRUE;
+}
+
+static GstCaps *
+gst_tensor_ros_src_fixate (GstBaseSrc * src, GstCaps * caps)
+{
+  GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (src);
+  GstCaps *update_caps;
+  GstCaps *config_caps = gst_tensor_caps_from_config (&rossrc->config);
+
+  update_caps = gst_caps_intersect (caps, config_caps);
+  if (!update_caps) {
+    GST_ERROR_OBJECT (rossrc,
+      "Only Tensor and application/octet-stream MIME are supported for now");
+  }
+
+  gst_caps_unref (caps);
+  return gst_caps_fixate (update_caps);
 }
 
 /**
@@ -454,45 +556,6 @@ gst_tensor_ros_src_get_property (GObject * object, guint prop_id,
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
   }
-}
-
-/**
- * @brief Getter for tensor_ros_src properties
- */
-static GstStateChangeReturn
-gst_tensor_ros_src_change_state (GstElement * element, GstStateChange transition)
-{
-  GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (element);
-  GstStateChangeReturn ret;
-
-  /* handle before change */
-  switch (transition) {
-    case GST_STATE_CHANGE_NULL_TO_READY:
-      /* create thread */
-      silent_debug (rossrc, "State is changed: GST_STATE_CHANGE_NULL_TO_READY\n");
-      rossrc->ros_sub = new TensorRosSub ("TensorRosSub", rossrc->topic_name,
-        rossrc, rossrc->freq_rate);
-      rossrc->ros_sub->Start (&rossrc->thread);
-      break;
-
-    default:
-      break;
-  }
-
-  ret = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
-
-  /* handle after change */
-  switch (transition) {
-    case GST_STATE_CHANGE_READY_TO_NULL:
-      /* stop thread */
-      silent_debug (rossrc, "State is changed: GST_STATE_CHANGE_READY_TO_NULL\n");
-      rossrc->ros_sub->RequestStop ();
-      break;
-
-    default:
-      break;
-  }
-  return ret;
 }
 
 /**
