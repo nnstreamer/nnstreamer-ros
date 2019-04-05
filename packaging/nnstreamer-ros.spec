@@ -63,7 +63,7 @@ CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
 
 %check
 pushd build
-export GST_PLUGIN_PATH=$(pwd)/gst/tensor_ros_sink
+export GST_PLUGIN_PATH=$(pwd)/gst/tensor_ros_sink:$(pwd)/gst/tensor_ros_src
 make test ARGS=-V
 popd
 pushd tests
