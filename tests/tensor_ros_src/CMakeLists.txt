@@ -34,4 +34,4 @@ TARGET_LINK_LIBRARIES(unittest_tensor_ros_src
 )
 
 ADD_TEST(NAME unittest_tensor_ros_src.properties
-  COMMAND unittest_tensor_ros_src --gtest_filter=test_tensor_ros_sink.properties)
+  COMMAND unittest_tensor_ros_src --gtest_filter=test_tensor_ros_src.properties)
