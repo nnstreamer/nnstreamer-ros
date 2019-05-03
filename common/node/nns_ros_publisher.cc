@@ -254,7 +254,7 @@ nns_ros_publisher_open_writable_bag (void * instance, const char *name)
   rosbag::Bag *bag;
   char *path_rosbag;
 
-  if (name == NULL || name == '\0') {
+  if (name == NULL || name[0] == '\0') {
     path_rosbag = g_strdup_printf ("%s.bag",
         nns_ros_publisher_get_pub_topic_name (instance));
   } else {
