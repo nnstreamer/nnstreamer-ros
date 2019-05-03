@@ -263,7 +263,7 @@ nns_ros_publisher_open_writable_bag (void * instance, const char *name)
 
   try {
     bag = new rosbag::Bag(std::string (path_rosbag), rosbag::bagmode::Write);
-  } catch (rosbag::BagException e){
+  } catch (rosbag::BagException &e){
     bag = NULL;
   }
   g_free(path_rosbag);
