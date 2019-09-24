@@ -110,7 +110,7 @@ gboolean NnsRosPublisher::setPubTopicInfo (const GstTensorsConfig *conf)
        * FIXME: Since the type of 'stride' of std_msgs::MultiArrayDimension is
        * unsigned int,conversion from size_t to unsigned int is requried.
        */
-      each_dim.label = tensor_element_typename[tensors_info->info[i].type];
+      each_dim.label = gst_tensor_get_type_string(tensors_info->info[i].type);
       each_dim.size =
           tensors_info->info[i].dimension[j];
       if (j != (NNS_TENSOR_RANK_LIMIT - 1)) {

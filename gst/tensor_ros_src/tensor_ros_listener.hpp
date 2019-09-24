@@ -57,7 +57,7 @@ class RosListener {
     public: \
       DATATYPE##RosListener (GstTensorRosSrc *rossrc) : RosListener (rossrc) { } \
       void Callback(const std_msgs::DATATYPE##MultiArray msg) { \
-        gsize payload_size = msg.layout.dim[0].stride * tensor_element_size[rossrc->datatype]; \
+        gsize payload_size = msg.layout.dim[0].stride * gst_tensor_get_element_size (rossrc->datatype); \
         g_assert (payload_size != 0); \
         \
         if (!this->is_initialized) { \
