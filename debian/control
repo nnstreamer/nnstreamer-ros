@@ -2,14 +2,17 @@ Source: nnstreamer-ros
 Section: libs
 Priority: optional
 Maintainer: MyungJoo Ham <myungjoo.ham@samsung.com>
-Build-Depends: gcc (>=5), cmake, debhelper (>=9),
+Build-Depends: bsdmainutils, gcc (>=5), cmake, debhelper (>=9),
  libgstreamer1.0-dev, libgstreamer-plugins-base1.0-dev, libglib2.0-dev,
  gstreamer1.0-plugins-base, gstreamer1.0-tools,
  libgtest-dev, ssat, python2.7, nnstreamer-dev,
- ros-kinetic-catkin, ros-kinetic-cmake-modules,
- ros-kinetic-genmsg, ros-kinetic-message-generation,
- ros-kinetic-roscpp, ros-kinetic-rosbag
-Standards-Version: 3.9.7
+ ros-kinetic-catkin | ros-melodic-catkin | ros-noetic-catkin,
+ ros-kinetic-cmake-modules | ros-melodic-cmake-modules | ros-noetic-cmake-modules,
+ ros-kinetic-genmsg | ros-melodic-genmsg | ros-noetic-genmsg,
+ ros-kinetic-message-generation | ros-melodic-message-generation | ros-noetic-message-generation,
+ ros-kinetic-roscpp | ros-melodic-roscpp | ros-noetic-roscpp,
+ ros-kinetic-rosbag | ros-melodic-rosbag | ros-noetic-rosbag,
+Standards-Version: 4.5.0
 Homepage: https://github.com/nnsuite/nnstreamer-ros
 
 Package: nnstreamer-ros
