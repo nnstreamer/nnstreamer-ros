@@ -1,0 +1,11 @@
+@[if DEVELSPACE]@
+# env variables in develspace
+export GST_PLUGIN_PATH="@(CATKIN_DEVEL_PREFIX)/@(CATKIN_PACKAGE_LIB_DESTINATION)/gstreamer-1.0:${GST_PLUGIN_PATH}"
+@[else]@
+# env variables in installspace
+if [ -z "$CATKIN_ENV_HOOK_WORKSPACE" ]; then
+  CATKIN_ENV_HOOK_WORKSPACE="@(CMAKE_INSTALL_PREFIX)"
+fi
+export GST_PLUGIN_PATH="$CATKIN_ENV_HOOK_WORKSPACE/@(CATKIN_PACKAGE_LIB_DESTINATION)/gstreamer-1.0:${GST_PLUGIN_PATH}"
+
+@[end if]@

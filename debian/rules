@@ -13,28 +13,36 @@ export DH_VERBOSE = 1
 #export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
 
 ROOT_DIR:=$(shell pwd)
-export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
-export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
-export GST_PLUGIN_PATH=${ROOT_DIR}/build/gst/nnstreamer
+DEBIAN_CODENAME:=$(shell cat /etc/os-release | grep UBUNTU_CODENAME | column -t -s 'UBUNTU_CODENAME=')
+# 'noetic' is the recommended version (focal)
+ROS_DISTRO=noetic
+ifeq ($(DEBIAN_CODENAME), xenial)
+ROS_DISTRO=kinetic
+endif
+ifeq ($(DEBIAN_CODENAME), bionic)
+ROS_DISTRO=melodic
+endif
+
+export ROS_BASE_PREFIX=/opt/ros
+export ROS_INSTALL_PREFIX=/opt/ros
 
 %:
 	dh $@ --buildsystem=cmake --builddirectory=build --parallel
 
-export ROS_VERSION = kinetic
-export GST_PLUGIN_PATH=${ROOT_DIR}/build/gst/tensor_ros_sink
-
 override_dh_auto_configure:
-	dh_auto_configure -- -DROS_VERSION=${ROS_VERSION} \
+	dh_auto_configure -- -DROS_VERSION=$(ROS_DISTRO) \
 		-DCMAKE_LIBRARY_ARCHITECTURE="$(DEB_TARGET_MULTIARCH)"
 
 override_dh_shlibdeps:
-	dh_shlibdeps -l${ROS_INSTALL_PREFIX}/${ROS_VERSION}/lib
+	dh_shlibdeps -l${ROS_INSTALL_PREFIX}/${ROS_DISTRO}/lib
 
 override_dh_auto_install:
 	dh_auto_install --DESTDIR=$(CURDIR)/debian/tmp --
 
 override_dh_auto_test:
-	cd build && ./tests/tensor_ros_sink/unittest_tensor_ros_sink -V && cd ${ROOT_DIR}
+	cd build && \
+			LD_LIBRARY_PATH=devel/lib:${ROS_BASE_PREFIX}/$(ROS_DISTRO)/lib GST_PLUGIN_PATH=gst/tensor_ros_sink \
+			./tests/tensor_ros_sink/unittest_tensor_ros_sink -V
 	. build/devel/setup.sh && cd tests && ssat
 
 override_dh_auto_clean:

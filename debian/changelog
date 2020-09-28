@@ -1,3 +1,11 @@
+nnstreamer-ros (0.0.2) unstable; urgency=medium
+
+  * Fixed build failure due to changes in NNStreamer (>= v1.6.0)
+  * Revised CMakeLists.txt to support both Colcon and CMake
+  * Improved Debian packaging files
+
+ -- Wook Song <wook16.song@samsung.com>  Mon, 28 Sep 2020 21:12:45 +0900
+
 nnstreamer-ros (0.0.1) unstable; urgency=medium
 
   * Initial debianization

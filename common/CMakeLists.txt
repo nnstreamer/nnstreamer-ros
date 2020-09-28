@@ -180,6 +180,10 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}
   ${PKGS_COMMON_LIBRARIES}
 )
 
+IF(CMAKE_HOST_UNIX)
+  CATKIN_ADD_ENV_HOOKS(20.gst_plugin_path SHELLS sh DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/env-hooks)
+ENDIF()
+
 #############
 ## Install ##
 #############
