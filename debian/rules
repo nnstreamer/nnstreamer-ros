@@ -21,18 +21,10 @@ export GST_PLUGIN_PATH=${ROOT_DIR}/build/gst/nnstreamer
 	dh $@ --buildsystem=cmake --builddirectory=build --parallel
 
 export ROS_VERSION = kinetic
-export ROS_BASE_PREFIX = /opt/ros
-export ROS_INSTALL_PREFIX = /opt/ros
-export NNS_INSTALL_PREFIX = /usr
-export NNS_INSTALL_LIBDIR = lib/${DEB_HOST_MULTIARCH}
 export GST_PLUGIN_PATH=${ROOT_DIR}/build/gst/tensor_ros_sink
 
 override_dh_auto_configure:
 	dh_auto_configure -- -DROS_VERSION=${ROS_VERSION} \
-		-DROS_BASE_PREFIX=${ROS_BASE_PREFIX} \
-		-DROS_INSTALL_PREFIX=${ROS_INSTALL_PREFIX} \
-		-DNNS_INSTALL_PREFIX=${NNS_INSTALL_PREFIX} \
-		-DCMAKE_INSTALL_LIBDIR=${NNS_INSTALL_LIBDIR} \
 		-DCMAKE_LIBRARY_ARCHITECTURE="$(DEB_TARGET_MULTIARCH)"
 
 override_dh_shlibdeps:

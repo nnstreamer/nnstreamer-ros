@@ -10,5 +10,5 @@
 /opt/ros/kinetic/share/nns_ros_bridge/package.xml
 /opt/ros/kinetic/share/common-lisp/ros/nns_ros_bridge/msg/*
 /opt/ros/kinetic/include/nns_ros_bridge/tensors.h
-/usr/lib/*/gstreamer-1.0/*
+/opt/ros/kinetic/lib/gstreamer-1.0/*
 

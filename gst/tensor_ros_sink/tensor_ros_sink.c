@@ -759,7 +759,6 @@ gst_tensor_ros_sink_render_buffer (GstTensorRosSink *self, GstBuffer *inbuf)
 
     in_tensors[i].data = in_info[i].data;
     in_tensors[i].size = in_info[i].size;
-    in_tensors[i].type = self->in_config.info.info[i].type;
   }
 
   if ((!nns_ros_publisher_publish (self->nns_ros_bind_instance, num_in_tensors,

@@ -1,5 +1,5 @@
-nnstreamer-ros (2019.2.29) unstable; urgency=medium
+nnstreamer-ros (0.0.1) unstable; urgency=medium
 
   * Initial debianization
 
- -- Wook Song <wook16.song@samsung.com>  Tue, 29 Jan 2019 18:25:02 +0900
+ -- Wook Song <wook16.song@samsung.com>  Thu, 08 Oct 2020 11:21:02 +0900
