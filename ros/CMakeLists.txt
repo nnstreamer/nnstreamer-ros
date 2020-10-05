@@ -124,18 +124,17 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  INCLUDE_DIRS include
   LIBRARIES nns_ros_bridge
   CATKIN_DEPENDS roscpp rosbag std_msgs message_runtime
   DEPENDS ${PKGS_COMMON}
 )
 
 SET(CXX_SRC_FILES_NNS_ROS_PUBLISHER
- ./node/nns_ros_publisher.cc
+  ./node/nns_ros_publisher.cc
 )
 
 SET(CXX_SRC_FILES_NNS_ROS_SRC
- ./node/nns_ros_subscriber.cc
+  ./node/nns_ros_subscriber.cc
 )
 
 ###########
