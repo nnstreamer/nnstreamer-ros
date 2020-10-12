@@ -130,7 +130,7 @@ catkin_package(
 )
 
 SET(CXX_SRC_FILES_NNS_ROS_PUBLISHER
-  ./node/nns_ros_publisher.cc
+  ./node/nns_roscpp_publisher.cc
 )
 
 SET(CXX_SRC_FILES_NNS_ROS_SRC
