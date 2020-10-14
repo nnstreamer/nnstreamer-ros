@@ -22,8 +22,8 @@
 #include <std_msgs/MultiArrayLayout.h>
 #include <time.h>
 
-#include "nns_ros_bridge/tensors.h"
 #include "nns_ros_publisher.h"
+#include "nns_ros_bridge/Tensors.h"
 
 const char BASE_NODE_NAME[] = "tensor_ros_sink";
 
@@ -85,7 +85,7 @@ NnsRosCppPublisher::NnsRosCppPublisher (const char *node_name,
      * The name of published topic would be
      * /tensor_ros_sink/PID_${PID}/${ElementNameOfTensorRosSink}
      */
-    this->ros_sink_pub = this->nh_child->advertise<nns_ros_bridge::tensors> (
+    this->ros_sink_pub = this->nh_child->advertise<nns_ros_bridge::Tensors> (
         this->str_pub_topic_name, default_q_size);
   }
 }
@@ -111,7 +111,7 @@ NnsRosCppPublisher::~NnsRosCppPublisher ()
 gboolean NnsRosCppPublisher::publish (const guint num_tensors,
     const GstTensorMemory *tensors_mem, void *bag)
 {
-  nns_ros_bridge::tensors tensors_msg;
+  nns_ros_bridge::Tensors tensors_msg;
 
   g_return_val_if_fail (this->ready_to_pub, FALSE);
   g_return_val_if_fail (num_tensors == this->num_of_tensors_pub, FALSE);
