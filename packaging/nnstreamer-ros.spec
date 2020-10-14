@@ -110,7 +110,7 @@ cp -r result %{buildroot}%{_datadir}/%{name}/unittest
 %{__ros_install_path}/share/nns_ros_bridge/msg/*
 %{__ros_install_path}/share/nns_ros_bridge/package.xml
 %{__ros_install_path}/share/nns_ros_bridge/catkin_env_hook/20.gst_plugin_path.sh
-%{__ros_install_path}/include/nns_ros_bridge/tensors.h
+%{__ros_install_path}/include/nns_ros_bridge/Tensors.h
 %{__ros_install_path}/lib/pkgconfig/nns_ros_bridge.pc
 # pyc
 %exclude %{__ros_install_path}/lib/python2.7/site-packages/nns_ros_bridge/*.pyc
