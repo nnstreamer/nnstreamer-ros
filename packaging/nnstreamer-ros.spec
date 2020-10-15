@@ -55,11 +55,18 @@ cp %{SOURCE1001} .
 CXXFLAGS="${CXXFLAGS} -fprofile-arcs -ftest-coverage"
 CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
 %endif
-%__ros_build_pkg '-DTIZEN=ON' '-DNNS_INSTALL_LIBDIR=%{_libdir}' '-DENABLE_TEST=ON'
+%__ros_build_pkg '-DROS_BASE_PREFIX=%{__ros_root}/%{__ros_distro}' '-DTIZEN=ON' '-DENABLE_TEST=ON'
 
 %install
 %{__ros_setup}
 %{__ros_install}
+mkdir -p %{buildroot}%{_libdir}/gstreamer-1.0
+pushd %{buildroot}%{_libdir}/gstreamer-1.0
+RELPATH_ROS_BASE=`python -c "import os.path; print os.path.relpath('%{__ros_install_path}', '%{_libdir}/gstreamer-1.0')"`
+ln -s ${RELPATH_ROS_BASE}/lib/gstreamer-1.0/libtensor_ros_sink.so
+ln -s ${RELPATH_ROS_BASE}/lib/gstreamer-1.0/libtensor_ros_src.so
+popd
+
 
 %check
 pushd build
@@ -95,6 +102,9 @@ cp -r result %{buildroot}%{_datadir}/%{name}/unittest
 %{_libdir}/gstreamer-1.0/libtensor_ros_sink.so
 %{_libdir}/gstreamer-1.0/libtensor_ros_src.so
 %{__ros_install_path}/lib/libnns_ros_bridge.so
+%{__ros_install_path}/lib/gstreamer-1.0/libtensor_ros_src.so
+%{__ros_install_path}/lib/gstreamer-1.0/libtensor_ros_sink.so
+%{__ros_install_path}/etc/catkin/profile.d/20.gst_plugin_path.sh
 %{__ros_install_path}/lib/python2.7/site-packages/nns_ros_bridge/*
 %{__ros_install_path}/share/nns_ros_bridge/cmake/*
 %{__ros_install_path}/share/nns_ros_bridge/msg/*
