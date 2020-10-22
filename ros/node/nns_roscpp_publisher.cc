@@ -27,11 +27,6 @@
 
 const char BASE_NODE_NAME[] = "tensor_ros_sink";
 
-typedef enum _err_code {
-  UNDEFINED_ROS_MASTER_URI,
-  FAILED_TO_CONNECT_ROSCORE,
-} err_code;
-
 class NnsRosCppPublisher
     : public NnsRosPublisher<std_msgs::MultiArrayLayout, guint>
 {
@@ -71,11 +66,11 @@ NnsRosCppPublisher::NnsRosCppPublisher (const char *node_name,
   char **dummy_argv = NULL;
 
   if (!is_dummy) {
-    if (getenv ("ROS_MASTER_URI") == NULL) throw UNDEFINED_ROS_MASTER_URI;
+    if (getenv ("ROS_MASTER_URI") == NULL) throw ROS1_UNDEFINED_ROS_MASTER_URI;
 
     ros::init (dummy_argc, dummy_argv, this->str_node_name);
 
-    if (!ros::master::check ()) throw FAILED_TO_CONNECT_ROSCORE;
+    if (!ros::master::check ()) throw ROS1_FAILED_TO_CONNECT_ROSCORE;
 
     this->nh_parent = new ros::NodeHandle (BASE_NODE_NAME);
     this->nh_child =
@@ -160,12 +155,12 @@ void *nns_ros_publisher_init (const char *node_name, const char *topic_name,
     return new NnsRosCppPublisher (node_name, topic_name, is_dummy);
   } catch (const err_code e) {
     switch (e) {
-      case UNDEFINED_ROS_MASTER_URI:
+      case ROS1_UNDEFINED_ROS_MASTER_URI:
         g_critical ("%s: ROS_MASTER_URI is not defined in the environment\n",
             NnsRosCppPublisher::getHelperName ());
         break;
 
-      case FAILED_TO_CONNECT_ROSCORE:
+      case ROS1_FAILED_TO_CONNECT_ROSCORE:
         g_critical (
             "%s: failed to connect to master: please make sure roscore is "
             "running\n", NnsRosCppPublisher::getHelperName ());

@@ -20,6 +20,11 @@
 #include <nnstreamer/tensor_typedef.h>
 #include <nnstreamer/nnstreamer_plugin_api.h>
 
+typedef enum _err_code {
+  ROS1_UNDEFINED_ROS_MASTER_URI,
+  ROS1_FAILED_TO_CONNECT_ROSCORE,
+} err_code;
+
 #ifdef __cplusplus
 #include <string>
 
