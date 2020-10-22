@@ -4,14 +4,20 @@ SET(PKG_MODULES
 
 PKG_CHECK_MODULES(PKGS REQUIRED ${PKG_MODULES})
 
-ADD_LIBRARY(tensor_ros_sink tensor_ros_sink.c)
-ADD_DEPENDENCIES(tensor_ros_sink nns_ros_bridge)
+IF(WITH_ROS1)
+  SET(NNS_ROS_BRIDGE nns_ros_bridge)
+ELSEIF(WITH_ROS2)
+  SET(NNS_ROS_BRIDGE nns_ros_bridge2)
+ENDIF(WITH_ROS1)
+
+ADD_LIBRARY(tensor_ros_sink SHARED tensor_ros_sink.c)
+ADD_DEPENDENCIES(tensor_ros_sink ${NNS_ROS_BRIDGE})
 TARGET_INCLUDE_DIRECTORIES(tensor_ros_sink PRIVATE
   ${PKGS_INCLUDE_DIRS}
 )
 
 TARGET_LINK_LIBRARIES(tensor_ros_sink
-  nns_ros_bridge
+  ${NNS_ROS_BRIDGE}
   ${PKGS_COMMON_LIBRARIES}
   ${PKGS_LIBRARIES}
 )
