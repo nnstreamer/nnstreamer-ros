@@ -23,6 +23,8 @@
 typedef enum _err_code {
   ROS1_UNDEFINED_ROS_MASTER_URI,
   ROS1_FAILED_TO_CONNECT_ROSCORE,
+  ROS2_FAILED_TO_CREATE_NODE,
+  ROS2_FAILED_TO_CREATE_PUBLISHER,
 } err_code;
 
 #ifdef __cplusplus
