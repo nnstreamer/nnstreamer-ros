@@ -479,7 +479,8 @@ gst_tensor_ros_sink_finalize (GObject *object)
 
   g_mutex_clear (&self->mutex);
   g_free (self->location);
-  nns_ros_publisher_close_bag (self->rosbag_to_save);
+  nns_ros_publisher_close_bag (self->nns_ros_bind_instance,
+      self->rosbag_to_save);
   nns_ros_publisher_finalize (self->nns_ros_bind_instance);
 
   self->location = NULL;

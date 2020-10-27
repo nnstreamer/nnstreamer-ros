@@ -187,7 +187,7 @@ nns_ros_publisher_open_writable_bag (void * instance __attribute__((unused)), co
 }
 
 void
-nns_ros_publisher_close_bag (void *bag __attribute__((unused)))
+nns_ros_publisher_close_bag (void * instance __attribute__((unused)), void *bag __attribute__((unused)))
 {
   ;
 }
