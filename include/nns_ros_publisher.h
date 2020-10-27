@@ -132,7 +132,7 @@ gboolean nns_ros_publisher_set_pub_topic (void *instance,
     const GstTensorsConfig *conf);
 const gchar *nns_ros_publisher_get_pub_topic_name (void *instance);
 void *nns_ros_publisher_open_writable_bag (void *instance, const char *name);
-void nns_ros_publisher_close_bag (void *bag);
+void nns_ros_publisher_close_bag (void *instance, void *bag);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

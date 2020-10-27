@@ -225,7 +225,8 @@ void *nns_ros_publisher_open_writable_bag (void *instance, const char *name)
   return (void *) bag;
 }
 
-void nns_ros_publisher_close_bag(void *bag)
+void nns_ros_publisher_close_bag(void * instance __attribute__((unused)),
+    void *bag)
 {
   rosbag::Bag *rosbag = (rosbag::Bag *) bag;
 
