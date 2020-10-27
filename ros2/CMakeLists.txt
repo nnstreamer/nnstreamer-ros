@@ -35,9 +35,17 @@ ENDFOREACH()
 
 # find dependencies
 FIND_PACKAGE(ament_cmake REQUIRED)
+FIND_PACKAGE(pluginlib REQUIRED)
+FIND_PACKAGE(rcutils REQUIRED)
 FIND_PACKAGE(rclcpp REQUIRED)
 FIND_PACKAGE(std_msgs REQUIRED)
-
+FIND_PACKAGE(rosbag2 REQUIRED)
+FIND_PACKAGE(rosbag2_storage REQUIRED)
+FIND_PACKAGE(sqlite3_vendor REQUIRED)
+FIND_PACKAGE(SQLite3 REQUIRED)  # provided by sqlite3_vendor
+FIND_PACKAGE(rmw_fastrtps_cpp REQUIRED)
+FIND_PACKAGE(rosbag2_storage_default_plugins REQUIRED)
+FIND_PACKAGE(rosbag2_converter_default_plugins REQUIRED)
 FIND_PACKAGE(rosidl_default_generators REQUIRED)
 
 SET(NNS_ROS2_LIB_MSGS "${NNS_ROS_COMMON_DIR}/msg:Tensors.msg")
@@ -54,7 +62,10 @@ ROSIDL_GENERATE_INTERFACES(${PROJECT_NAME}
 ADD_LIBRARY(${NNS_ROS2_LIB_TARGET} SHARED
     ${NNS_ROS2_LIB_SRCS}
 )
-AMENT_TARGET_DEPENDENCIES(${NNS_ROS2_LIB_TARGET} rclcpp std_msgs)
+AMENT_TARGET_DEPENDENCIES(${NNS_ROS2_LIB_TARGET}
+    rclcpp std_msgs rosbag2 pluginlib rcutils rosbag2_storage_default_plugins
+    rosbag2_converter_default_plugins rosbag2_storage rmw_fastrtps_cpp
+    sqlite3_vendor SQLite3)
 AMENT_EXPORT_DEPENDENCIES(rosidl_default_runtime)
 ROSIDL_TARGET_INTERFACES(${NNS_ROS2_LIB_TARGET}
     ${PROJECT_NAME} "rosidl_typesupport_cpp"
