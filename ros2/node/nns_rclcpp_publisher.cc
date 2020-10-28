@@ -351,10 +351,13 @@ void
 nns_ros_publisher_close_bag (void *instance, void *bag)
 {
   NnsRclCppPublisher *nrp_instance = (NnsRclCppPublisher *) instance;
+  std::unique_ptr<rosbag2::writers::SequentialWriter> sq_writer;
 
-  std::unique_ptr<rosbag2::writers::SequentialWriter> sq_writer =
-      nrp_instance->getRosBagWriter ();
+  if(instance == NULL)
+    return;
 
-  if ((!bag) && (sq_writer.get () == bag))
+  sq_writer = nrp_instance->getRosBagWriter ();
+
+  if ((bag) && (sq_writer.get () == bag))
     sq_writer.release ();
 }
