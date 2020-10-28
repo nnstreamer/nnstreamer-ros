@@ -45,6 +45,11 @@
 #define DBG (!self->silent)
 #endif
 
+#ifdef WITH_ROS1
+#define NNS_NAME_TENSOR_ROS_SINK  tensor_ros_sink
+#else   /** WITH_ROS2 */
+#define NNS_NAME_TENSOR_ROS_SINK  tensor_ros2_sink
+#endif  /** WITH_ROS1 */
 /**
  * @brief Macro for debug message.
  */
@@ -1015,10 +1020,10 @@ gst_tensor_ros_sink_get_location (GstTensorRosSink *self)
  */
 gboolean gst_tensor_ros_sink_plugin_init (GstPlugin *plugin)
 {
-  GST_DEBUG_CATEGORY_INIT (gst_tensor_ros_sink_debug, "tensor_ros_sink",
+  GST_DEBUG_CATEGORY_INIT (gst_tensor_ros_sink_debug, G_STRINGIFY (NNS_NAME_TENSOR_ROS_SINK),
       0, "tensor_ros_sink element");
 
-  return gst_element_register (plugin, "tensor_ros_sink",
+  return gst_element_register (plugin, G_STRINGIFY (NNS_NAME_TENSOR_ROS_SINK),
       GST_RANK_NONE, GST_TYPE_TENSOR_ROS_SINK);
 }
 
@@ -1031,7 +1036,7 @@ gboolean gst_tensor_ros_sink_plugin_init (GstPlugin *plugin)
  */
 GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
-    tensor_ros_sink,
+    NNS_NAME_TENSOR_ROS_SINK,
     "Sink element to handle tensor stream",
     gst_tensor_ros_sink_plugin_init, NNS_VERSION, "LGPL", "nnstreamer-ros",
     "https://github.com/nnsuite/nnstreamer-ros");
