@@ -12,7 +12,7 @@
  * @author      Wook Song <wook16.song@samsung.com>
  * @bug         No known bugs except for NYI items
  *
- * This class bridges between the NNStreamer (C) and ROS2 frameworks (ROSCPP/C++)
+ * This class bridges between the NNStreamer (C) and ROS2 frameworks (RCLCPP/C++)
  * by implementing the NnsRosPublisher class.
  *
  */
