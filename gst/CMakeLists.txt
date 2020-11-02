@@ -1,4 +1,2 @@
 ADD_SUBDIRECTORY(tensor_ros_sink)
-IF(WITH_ROS1)
-  ADD_SUBDIRECTORY(tensor_ros_src)
-ENDIF(WITH_ROS1)
+ADD_SUBDIRECTORY(tensor_ros_src)
