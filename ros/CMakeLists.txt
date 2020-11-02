@@ -72,7 +72,7 @@ SET(CXX_SRC_FILES_NNS_ROS_PUBLISHER
 )
 
 SET(CXX_SRC_FILES_NNS_ROS_SRC
-  ./node/nns_ros_subscriber.cc
+  ./node/nns_roscpp_subscriber.cc
 )
 
 ###########

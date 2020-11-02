@@ -1,28 +1,22 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /**
- * GStreamer
- * Copyright (C) 2005 Thomas Vander Stichele <thomas@apestaart.org>
- * Copyright (C) 2005 Ronald S. Bultje <rbultje@ronald.bitfreak.net>
- * Copyright (C) 2019 Samsung Electronics Co., Ltd.
+ * NNStreamer-ROS: NNStreamer extension packages for ROS/ROS2 support
+ * Copyright (C) 2019 Sangjung Woo <sangjung.woo@samsung.com>
+ * Copyright (C) 2020 Wook Song <wook16.song@samsung.com>
+ * Copyright (C) 2020 Samsung Electronics Co., Ltd.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; 
- * version 2.1 of the License.
+ * @file        tensor_ros_src.h
+ * @date        10/20/2020
+ * @brief       GStreamer plugin to subscribe a Ros topic and convert them into
+ *              tensor stream
+ * @see         https://github.com/nnstreamer/nnstreamer-ros
+ * @author      Sangjung Woo <sangjung.woo@samsung.com>
+ *              Wook Song <wook16.song@samsung.com>
+ * @bug         No known bugs except for NYI items
  *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- */
-
-/**
- * @file	tensor_ros_src.h
- * @date	03/06/2019
- * @brief	GStreamer plugin to handle tensor stream from Ros topic
- * @see		https://github.com/nnsuite/nnstreamer
- * @see		https://github.com/nnsuite/nnstreamer-ros
- * @author	Sangjung Woo <sangjung.woo@samsung.com>
- * @bug		No known bugs except for NYI items
+ * This class bridges between the NNStreamer (C) and ROS2 frameworks (RCLCPP/C++)
+ * by implementing the NnsRosPublisher class.
+ *
  */
 
 #ifndef __GST_TENSOR_ROS_SRC_H__
@@ -30,8 +24,8 @@
 
 #include <gst/gst.h>
 #include <gst/base/gstpushsrc.h>
-
-#include "nns_ros_subscriber.h"
+#include <nnstreamer/tensor_typedef.h>
+#include <nnstreamer/nnstreamer_plugin_api.h>
 
 G_BEGIN_DECLS
 
@@ -53,21 +47,20 @@ struct _GstTensorRosSrc
 {
   GstPushSrc parent;
 
-  GstTensorConfig config; /** Output Tensor configuration */
-  gboolean configured;    /** is configured based on Ros message */
+  GstTensorsConfig configs;   /** Output Tensors configuration */
+  gboolean configured;        /** is configured based on Ros message */
   gboolean silent;
-  GThread *thread;        /** ros subscribe thread */
+  GThread *thread;            /** ros subscribe thread */
 
-  gchar *topic_name;      /** ROS topic name to subscribe */
-  tensor_type datatype;   /** Primitive datatype of ROS topic */
-  gsize payload_size;     /** Actual payload size of ROS message */
-  gulong freq_rate;       /** frequency rate to check */
+  gchar *topic_name;          /** ROS topic name to subscribe */
+  gdouble timeout;            /** Timeout in seconds waiting for the next message to receive */
+  gdouble rate;               /** frequency rate to check */
 
-  GAsyncQueue *queue;     /** data queue */
-  class NnsRosSubscriber *ros_sub;    /** NnsRosSubscriber instance for subscribing Ros topic in other thread */
+  GAsyncQueue *queue;         /** data queue */
+  void *nns_ros_bind_instance;
 };
 
-struct _GstTensorRosSrcClass 
+struct _GstTensorRosSrcClass
 {
   GstPushSrcClass parent_class;
 };
