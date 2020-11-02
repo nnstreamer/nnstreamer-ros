@@ -1,24 +1,21 @@
 /* SPDX-License-Identifier: LGPL-2.1-only */
 /**
  * NNStreamer-ROS: NNStreamer extension packages for ROS/ROS2 support
- * Copyright (C) 2019 Sangjung Woo <sangjung.woo@samsung.com>
  * Copyright (C) 2020 Wook Song <wook16.song@samsung.com>
- * Copyright (C) 2020 Samsung Electronics Co., Ltd.
+ * Copyright (C) 2018 Samsung Electronics Co., Ltd.
  *
- * @file        nns_ros_subscriber.cc
- * @date        03/06/2019
- * @brief       A helper class for publishing ROS1 (i.e., roscpp) topic
+ * @file        nns_rclcpp_subscriber.cc
+ * @date        10/28/2020
+ * @brief       A helper class for subscribing ROS2 (i.e., rclcpp) topic
  *              via NNStreamer plugins
  * @see         https://github.com/nnstreamer/nnstreamer-ros
- * @author      Sangjung Woo <sangjung.woo@samsung.com>
- *              Wook Song <wook16.song@samsung.com>
+ * @author      Wook Song <wook16.song@samsung.com>
  * @bug         No known bugs except for NYI items
  *
- * This class bridges between the NNStreamer (C) and ROS1 frameworks
- * (ROSCPP/C++) by implementing the NnsRosSubscriber class.
+ * This class bridges between the NNStreamer (C) and ROS2 frameworks (RCLCPP/C++)
+ * by implementing the NnsRosSubscriber class.
  *
  */
-
 #ifdef G_OS_WIN32
 #include <process.h>
 #else
@@ -30,47 +27,46 @@
 #include <nnstreamer/tensor_typedef.h>
 
 #include <cstring>
-#include <chrono>
-#include <mutex>
 
-#include "ros/ros.h"
-#include "rosbag/bag.h"
-#include "std_msgs/MultiArrayDimension.h"
-#include "std_msgs/MultiArrayLayout.h"
+#include "rclcpp/rclcpp.hpp"
+#include "std_msgs/msg/multi_array_layout.hpp"
+#include "std_msgs/msg/multi_array_dimension.hpp"
 
-#include "nns_ros_bridge/Tensors.h"
 #include "nns_ros_subscriber.h"
+#include "nns_ros2_bridge/msg/tensors.hpp"
+#include "std_msgs/msg/multi_array_layout.hpp"
+#include "std_msgs/msg/multi_array_dimension.hpp"
 
-const char BASE_NODE_NAME[] = "tensor_ros_src";
+using namespace std_msgs::msg;
+using std::placeholders::_1;
 
-class NnsRosCppSubscriber
-    : public NnsRosSubscriber<nns_ros_bridge::Tensors>
+class NnsRclCppSubscriber
+    : public NnsRosSubscriber<nns_ros2_bridge::msg::Tensors>
 {
 public:
-  NnsRosCppSubscriber (const gchar *node_name, const char *topic_name,
+  NnsRclCppSubscriber (const gchar *node_name, const char *topic_name,
       const gdouble rate, const gdouble timeout, GstTensorsConfig *configs,
       gboolean is_dummy);
-  ~NnsRosCppSubscriber ();
+  ~NnsRclCppSubscriber ();
 
-  void subCallback (const std::shared_ptr<nns_ros_bridge::Tensors> msg) final;
-  void configure (const std::shared_ptr<nns_ros_bridge::Tensors> msg) final;
+  void subCallback (const nns_ros2_bridge::msg::Tensors::SharedPtr msg) final;
+  void configure (const nns_ros2_bridge::msg::Tensors::SharedPtr msg) final;
   void finalize () final;
 
 private:
-  NnsRosCppSubscriber () {};
+  NnsRclCppSubscriber () {};
   void loop ();
 
-  // Variables for ROS configuration
-  ros::NodeHandle *nh_parent;
-  ros::NodeHandle *nh_child;
-  ros::Subscriber ros_src_sub;
-  void subCallbackInternal (const nns_ros_bridge::Tensors msg);
-  void configureInternal (const nns_ros_bridge::Tensors msg);
+  static const std::string node_namespace_;
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Subscription<nns_ros2_bridge::msg::Tensors>::SharedPtr subscriber_;
 };
 
 template <>
-std::string NnsRosSubscriber<nns_ros_bridge::Tensors>::str_nns_helper_name =
-    "nns_roscpp_subscriber";
+std::string NnsRosSubscriber<nns_ros2_bridge::msg::Tensors>::str_nns_helper_name =
+    "nns_rclcpp_subscriber";
+
+const std::string NnsRclCppSubscriber::node_namespace_ = "tensor_ros2_src";
 
 /**
  * @brief	The only public constructor of this class
@@ -82,52 +78,51 @@ std::string NnsRosSubscriber<nns_ros_bridge::Tensors>::str_nns_helper_name =
  * @param[in] is_dummy If TRUE, create the instance without roscore connection
  * @return None
  */
-NnsRosCppSubscriber::NnsRosCppSubscriber (const gchar *node_name,
+NnsRclCppSubscriber::NnsRclCppSubscriber (const char *node_name,
     const char *topic_name, const gdouble rate, const gdouble timeout,
     GstTensorsConfig *configs, gboolean is_dummy)
-    : NnsRosSubscriber<nns_ros_bridge::Tensors> (node_name, topic_name,
+    : NnsRosSubscriber<nns_ros2_bridge::msg::Tensors> (node_name, topic_name,
         rate, timeout, configs, is_dummy)
 {
+  rclcpp::Rate ros_rate (this->rate);
   std::chrono::_V2::system_clock::time_point st;
-  /* ROS initialization requires command-line arguments */
+  /* RCLCPP initialization requires command-line arguments */
   int dummy_argc = 0;
   char **dummy_argv = NULL;
-  ros::Subscriber tmp_sub;
-
-  if (is_dummy) {
-    g_critical ("%s: Failed to create a NnsRosCppSubscriber instance: Dummy mode is not supported yet\n",
-        (this->str_nns_helper_name).c_str ());
-    throw ROS_INVALID_OPTION;
-  }
-
-  if (getenv ("ROS_MASTER_URI") == NULL) throw ROS1_UNDEFINED_ROS_MASTER_URI;
-
-  ros::init (dummy_argc, dummy_argv, this->str_node_name);
-
-  if (!ros::master::check ()) throw ROS1_FAILED_TO_CONNECT_ROSCORE;
-
-  this->nh_parent = new ros::NodeHandle (BASE_NODE_NAME);
-  this->nh_child =
-      new ros::NodeHandle (*(this->nh_parent), this->str_node_name);
 
   try {
-    tmp_sub = this->nh_child->subscribe (
-        this->str_sub_topic_name,
-        this->default_ros_queue_size,
-        &NnsRosCppSubscriber::configureInternal, this);
-  } catch (ros::Exception &e) {
-    g_critical ("%s: Failed to create a subscription for the given topic: %s",
-        (this->str_nns_helper_name).c_str (), e.what ());
+    rclcpp::init (dummy_argc, dummy_argv);
+  } catch (rclcpp::ContextAlreadyInitialized &e) {
+    g_warning ("%s: The given context has been already initialized",
+        (this->str_nns_helper_name).c_str ());
+  }
+
+  try {
+    this->node_ = rclcpp::Node::make_shared (node_name,
+        NnsRclCppSubscriber::node_namespace_);
+  } catch (rclcpp::exceptions::RCLErrorBase &e) {
+    g_critical ("%s: Failed to create a rclcpp::Node instance: %s",
+        (this->str_nns_helper_name).c_str (), e.message.c_str ());
+    throw ROS2_FAILED_TO_CREATE_NODE;
+  }
+
+  try {
+        this->subscriber_ =
+            this->node_->create_subscription<nns_ros2_bridge::msg::Tensors> (
+                topic_name, 10,
+                std::bind (&NnsRclCppSubscriber::configure, this,
+                    std::placeholders::_1)
+            );
+  } catch (rclcpp::exceptions::RCLErrorBase &e) {
+    g_critical ("%s: Failed to create a subscription for GstCap configuration: %s",
+        (this->str_nns_helper_name).c_str (), e.message.c_str ());
     throw ROS_FAILED_TO_CREATE_SUBSCRIPTION;
   }
 
   st = std::chrono::system_clock::now ();
-
-  ros::Rate ros_rate (this->rate);
-  while (ros::ok ()) {
+  while (rclcpp::ok ()) {
     std::chrono::duration<double> diff;
-
-    ros::spinOnce ();
+    rclcpp::spin_some (this->node_);
     ros_rate.sleep ();
 
     {
@@ -139,24 +134,28 @@ NnsRosCppSubscriber::NnsRosCppSubscriber (const gchar *node_name,
     diff = std::chrono::system_clock::now () - st;
     if (diff > this->timeout) {
       g_critical ("%s: Failed to configure GstCaps from the given topic",
-          (this->str_nns_helper_name).c_str ());
+        (this->str_nns_helper_name).c_str ());
       throw ROS_SUBSCRIPTION_TIMED_OUT;
     }
   }
 
+  this->subscriber_.reset ();
+
   try {
-    this->ros_src_sub =
-        this->nh_child->subscribe (
-            this->str_sub_topic_name,
-            this->default_ros_queue_size,
-            &NnsRosCppSubscriber::subCallbackInternal, this);
-  } catch (ros::Exception &e) {
+        this->subscriber_ =
+            this->node_->create_subscription<nns_ros2_bridge::msg::Tensors> (
+                topic_name, 10,
+                std::bind (&NnsRclCppSubscriber::subCallback, this,
+                    std::placeholders::_1)
+            );
+  } catch (rclcpp::exceptions::RCLErrorBase &e) {
     g_critical ("%s: Failed to create a subscription for the given topic: %s",
-        (this->str_nns_helper_name).c_str (), e.what ());
+        (this->str_nns_helper_name).c_str (), e.message.c_str ());
     throw ROS_FAILED_TO_CREATE_SUBSCRIPTION;
   }
-  this->looper = std::make_shared <std::thread> (&NnsRosCppSubscriber::loop,
-    this);
+
+  this->looper = std::make_shared <std::thread> (&NnsRclCppSubscriber::loop,
+      this);
   {
     std::lock_guard<std::mutex> lk (this->looper_m);
     this->is_looper_ready = true;
@@ -164,13 +163,15 @@ NnsRosCppSubscriber::NnsRosCppSubscriber (const gchar *node_name,
   this->looper_cv.notify_all ();
 }
 
-NnsRosCppSubscriber::~NnsRosCppSubscriber ()
+NnsRclCppSubscriber::~NnsRclCppSubscriber ()
 {
-  ros::shutdown ();
+  if (!rclcpp::shutdown())
+    g_critical ("%s: Failed to shutdown the given context",
+        (this->str_nns_helper_name).c_str ());
 }
 
 void
-NnsRosCppSubscriber::finalize ()
+NnsRclCppSubscriber::finalize ()
 {
   {
     std::unique_lock<std::mutex> lk (this->g_m);
@@ -182,8 +183,8 @@ NnsRosCppSubscriber::finalize ()
 }
 
 void
-NnsRosCppSubscriber::configure (
-    const std::shared_ptr<nns_ros_bridge::Tensors> msg)
+NnsRclCppSubscriber::configure (
+  const nns_ros2_bridge::msg::Tensors::SharedPtr msg)
 {
   guint num_tensors = static_cast<guint> (msg->tensors.size ());
 
@@ -193,7 +194,7 @@ NnsRosCppSubscriber::configure (
 
   for (guint i = 0; i < num_tensors; ++i) {
     GstTensorInfo *info = &(this->configs->info.info[i]);
-    std_msgs::MultiArrayLayout layout = msg->tensors[i].layout;
+    std_msgs::msg::MultiArrayLayout layout = msg->tensors[i].layout;
 
     for (guint j = 0; j < NNS_TENSOR_RANK_LIMIT; ++j) {
       guint nns_dim = NNS_TENSOR_RANK_LIMIT - 1 - j;
@@ -208,8 +209,8 @@ NnsRosCppSubscriber::configure (
 }
 
 void
-NnsRosCppSubscriber::subCallback (
-    const std::shared_ptr<nns_ros_bridge::Tensors> msg)
+NnsRclCppSubscriber::subCallback (
+  const nns_ros2_bridge::msg::Tensors::SharedPtr msg)
 {
   guint num_tensors = this->configs->info.num_tensors;
   guint size_tensors = 0;
@@ -229,30 +230,13 @@ NnsRosCppSubscriber::subCallback (
     std::memcpy (off, msg->tensors.at (i).data.data (), size);
     off += size;
   }
+
   g_async_queue_push (this->gasyncq, data);
 }
 
-void
-NnsRosCppSubscriber::subCallbackInternal (const nns_ros_bridge::Tensors msg)
+void NnsRclCppSubscriber::loop ()
 {
-  auto msgSharedPtr = std::make_shared<nns_ros_bridge::Tensors> (msg);
-
-  this->subCallback (msgSharedPtr);
-}
-
-void
-NnsRosCppSubscriber::configureInternal (const nns_ros_bridge::Tensors msg)
-{
-  auto msgSharedPtr = std::make_shared<nns_ros_bridge::Tensors> (msg);
-
-  this->configure (msgSharedPtr);
-
-}
-
-void
-NnsRosCppSubscriber::loop ()
-{
-  ros::Rate ros_rate (this->rate);
+  rclcpp::Rate ros_rate (this->rate);
   std::unique_lock<std::mutex> lk (this->looper_m);
 
   this->looper_cv.wait (lk,
@@ -263,7 +247,7 @@ NnsRosCppSubscriber::loop ()
   );
 
   while (true) {
-    ros::spinOnce ();
+    rclcpp::spin_some (this->node_);
     ros_rate.sleep ();
     {
       std::unique_lock<std::mutex> lk (this->g_m);
@@ -285,7 +269,7 @@ void *nns_ros_subscriber_init (const gchar *node_name, const char *topic_name,
       gboolean is_dummy)
 {
   try {
-    return new NnsRosCppSubscriber (node_name, topic_name, rate, timeout,
+    return new NnsRclCppSubscriber (node_name, topic_name, rate, timeout,
         configs, is_dummy);
   } catch (const err_code e) {
     return nullptr;
@@ -294,7 +278,7 @@ void *nns_ros_subscriber_init (const gchar *node_name, const char *topic_name,
 
 void nns_ros_subscriber_fianlize (void *instance)
 {
-  NnsRosCppSubscriber *nrs_instance = (NnsRosCppSubscriber *) instance;
+  NnsRclCppSubscriber *nrs_instance = (NnsRclCppSubscriber *) instance;
 
   nrs_instance->finalize ();
 
@@ -304,14 +288,14 @@ void nns_ros_subscriber_fianlize (void *instance)
 
 GAsyncQueue *nns_ros_subscriber_get_queue (void *instance)
 {
-  NnsRosCppSubscriber *nrs_instance = (NnsRosCppSubscriber *) instance;
+  NnsRclCppSubscriber *nrs_instance = (NnsRclCppSubscriber *) instance;
 
   return nrs_instance->getQueue ();
 }
 
 void nns_ros_subscriber_put_queue (void *instance)
 {
-  NnsRosCppSubscriber *nrs_instance = (NnsRosCppSubscriber *) instance;
+  NnsRclCppSubscriber *nrs_instance = (NnsRclCppSubscriber *) instance;
 
   nrs_instance->putQueue ();
 }

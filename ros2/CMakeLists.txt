@@ -51,6 +51,7 @@ FIND_PACKAGE(rosidl_default_generators REQUIRED)
 SET(NNS_ROS2_LIB_MSGS "${NNS_ROS_COMMON_DIR}/msg:Tensors.msg")
 SET(NNS_ROS2_LIB_SRCS
     node/nns_rclcpp_publisher.cc
+    node/nns_rclcpp_subscriber.cc
 )
 SET(NNS_ROS2_LIB_TARGET nns_ros_bridge2)
 

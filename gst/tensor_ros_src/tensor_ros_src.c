@@ -78,7 +78,7 @@ GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_src_debug);
 #define DEFAULT_SILENT TRUE
 
 /**
- * @brief @todo
+ * @brief Default timeout in seconds to wait for the next message to receive
  */
 #define DEFAULT_TIMEOUT 5.0
 
