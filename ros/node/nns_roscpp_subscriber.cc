@@ -95,7 +95,7 @@ NnsRosCppSubscriber::NnsRosCppSubscriber (const gchar *node_name,
   ros::Subscriber tmp_sub;
 
   if (is_dummy) {
-    g_critical ("%s: Failed to create a NnsRosCppSubscriber insntance: Dummy mode is not supported yet\n",
+    g_critical ("%s: Failed to create a NnsRosCppSubscriber instance: Dummy mode is not supported yet\n",
         (this->str_nns_helper_name).c_str ());
     throw ROS_INVALID_OPTION;
   }
