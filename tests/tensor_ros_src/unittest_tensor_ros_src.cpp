@@ -13,15 +13,10 @@
 #define LAUNCHLINE_ROSSRC "tensor_ros_src"
 #define TARGET_ELEMENT_NAME "tensor_ros_src"
 
-const guint64 DEFAULT_FREQRATE = 1;
-const gchar *DATATYPES[] = { "int32", "uint32",
-                            "int8", "uint8",
-                            "int16", "uint16",
-                            "int64", "uint64",
-                            "float32" , "float64"};
 
 TEST (test_tensor_ros_src, properties)
 {
+  const gdouble DEFAULT_FREQRATE = 1.0;
   GstHarness *hrnss = NULL;
   GstElement *rossrc = NULL;
   gchar *name;
@@ -30,9 +25,8 @@ TEST (test_tensor_ros_src, properties)
   gboolean silent, ret_silent;
   const gchar *topic_name = "test_topic";
   gchar *ret_topic_name;
-  guint64 freqrate;
-  guint64 ret_freqrate;
-  gchar *ret_datatype;
+  gdouble freqrate;
+  gdouble ret_freqrate;
 
   /* setup */
   hrnss = gst_harness_new_empty ();
@@ -62,24 +56,13 @@ TEST (test_tensor_ros_src, properties)
   g_free (ret_topic_name);
 
   /* freqrate test */
-  g_object_get (rossrc, "freqrate", &ret_freqrate, NULL);
-  EXPECT_EQ (ret_freqrate, DEFAULT_FREQRATE);
+  g_object_get (rossrc, "rate", &ret_freqrate, NULL);
+  EXPECT_DOUBLE_EQ (ret_freqrate, DEFAULT_FREQRATE);
 
-  freqrate = 10;
-  g_object_set (rossrc, "freqrate", freqrate, NULL);
-  g_object_get (rossrc, "freqrate", &ret_freqrate, NULL);
-  EXPECT_EQ (ret_freqrate, freqrate);
-
-  /* datatype test */
-  g_object_get (rossrc, "datatype", &ret_datatype, NULL);
-  EXPECT_STREQ (ret_datatype, DATATYPES[0]);
-
-  unsigned int size = sizeof(DATATYPES) / sizeof(DATATYPES[0]);
-  for (unsigned int i = 0; i < size; ++i) {
-    g_object_set (rossrc, "datatype", DATATYPES[i], NULL);
-    g_object_get (rossrc, "datatype", &ret_datatype, NULL);
-    EXPECT_STREQ (ret_datatype, DATATYPES[i]);
-  }
+  freqrate = 10.0;
+  g_object_set (rossrc, "rate", freqrate, NULL);
+  g_object_get (rossrc, "rate", &ret_freqrate, NULL);
+  EXPECT_DOUBLE_EQ (ret_freqrate, freqrate);
 
   /* teardown */
   gst_harness_teardown (hrnss);
