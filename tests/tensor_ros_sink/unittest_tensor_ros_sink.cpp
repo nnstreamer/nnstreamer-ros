@@ -12,7 +12,17 @@
 #include <gst/check/gstharness.h>
 #include <nnstreamer/nnstreamer_plugin_api.h>
 
+#if (!(defined(WITH_ROS1) || defined(WITH_ROS2)))
+#error "One of WITH_ROS or WITH_ROS2 should be defined."
+#endif /** (!(defined(WITH_ROS) || defined(WITH_ROS2)) */
+
+#if defined(WITH_ROS2)
+#define LAUNCH_LINE_SINK_DUMMY "tensor_ros2_sink dummy=TRUE"
+#define ELMNT_NAME_SINK "tensor_ros2_sink"
+#elif defined(WITH_ROS1)
 #define LAUNCH_LINE_SINK_DUMMY "tensor_ros_sink dummy=TRUE"
+#define ELMNT_NAME_SINK "tensor_ros_sink"
+#endif /** WITH_ROS1 */
 
 /**
  * @brief Test for setting/getting properties of tensor_ros_sink
@@ -38,7 +48,7 @@ TEST (test_tensor_ros_sink, properties)
   ASSERT_TRUE (hrnss != NULL);
 
   gst_harness_add_parse (hrnss, LAUNCH_LINE_SINK_DUMMY);
-  sink = gst_harness_find_element (hrnss, "tensor_ros_sink");
+  sink = gst_harness_find_element (hrnss, ELMNT_NAME_SINK);
   ASSERT_TRUE (sink != NULL);
 
   /** default name is "tensorrossink0" (default_name) */
@@ -123,7 +133,7 @@ static void callback_sink_new_data_signal (GstElement* object,
       ASSERT_TRUE (hrnss != NULL); \
       \
       gst_harness_add_parse (hrnss, LAUNCH_LINE_SINK_DUMMY); \
-      sink = gst_harness_find_element (hrnss, "tensor_ros_sink"); \
+      sink = gst_harness_find_element (hrnss, ELMNT_NAME_SINK); \
       ASSERT_TRUE (sink != NULL); \
       \
       cnt_new_data_signal = 0; \

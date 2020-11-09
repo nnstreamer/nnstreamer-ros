@@ -20,7 +20,12 @@ ENDIF(GTEST_LIB OR TIZEN)
 
 PKG_CHECK_MODULES(PKGS_TEST REQUIRED ${PKG_MODULES_TESTS})
 
+SET(ELMNT_NAME_SINK tensor_ros2_sink)
+SET(ELMNT_NAME_SRC tensor_ros2_src)
 IF(WITH_ROS1)
-  ADD_SUBDIRECTORY(tensor_ros_sink)
-  ADD_SUBDIRECTORY(tensor_ros_src)
+  SET(ELMNT_NAME_SINK tensor_ros_sink)
+  SET(ELMNT_NAME_SRC tensor_ros_src)
 ENDIF(WITH_ROS1)
+
+ADD_SUBDIRECTORY(tensor_ros_sink)
+ADD_SUBDIRECTORY(tensor_ros_src)

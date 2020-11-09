@@ -10,9 +10,17 @@
 #include <gst/gst.h>
 #include <gst/check/gstharness.h>
 
-#define LAUNCHLINE_ROSSRC "tensor_ros_src"
-#define TARGET_ELEMENT_NAME "tensor_ros_src"
+#if (!(defined(WITH_ROS1) || defined(WITH_ROS2)))
+#error "One of WITH_ROS or WITH_ROS2 should be defined."
+#endif /** (!(defined(WITH_ROS) || defined(WITH_ROS2)) */
 
+#if defined(WITH_ROS2)
+#define LAUNCH_LINE_SRC "tensor_ros2_src"
+#define ELMNT_NAME_SRC "tensor_ros2_src"
+#elif defined(WITH_ROS1)
+#define LAUNCH_LINE_SRC "tensor_ros_src"
+#define ELMNT_NAME_SRC "tensor_ros_src"
+#endif /** WITH_ROS1 */
 
 TEST (test_tensor_ros_src, properties)
 {
@@ -31,8 +39,8 @@ TEST (test_tensor_ros_src, properties)
   /* setup */
   hrnss = gst_harness_new_empty ();
   ASSERT_TRUE (hrnss != NULL);
-  gst_harness_add_parse (hrnss, LAUNCHLINE_ROSSRC);
-  rossrc = gst_harness_find_element (hrnss, TARGET_ELEMENT_NAME);
+  gst_harness_add_parse (hrnss, LAUNCH_LINE_SRC);
+  rossrc = gst_harness_find_element (hrnss, ELMNT_NAME_SRC);
   ASSERT_TRUE (rossrc != NULL);
 
   /* check the default name */
