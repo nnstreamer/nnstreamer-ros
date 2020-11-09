@@ -67,6 +67,7 @@ FIND_PACKAGE(PkgConfig REQUIRED)
 SET(PKG_COMMON_MODULES
   glib-2.0
   gstreamer-1.0
+  gstreamer-base-1.0
   nnstreamer
 )
 
