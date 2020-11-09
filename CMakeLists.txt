@@ -4,6 +4,7 @@ PROJECT(nnstreamer-ros C CXX)
 
 OPTION(TIZEN "Enable Tizen build mode" OFF)
 OPTION(ENABLE_TEST "Enable tests" ON)
+OPTION(ENABLE_COV "Enable code instrumentation for coverage analysis" OFF)
 
 SET(ROS_DISTROS "kinetic" "melodic" "noextic" )
 SET(ROS2_DISTROS "eloquent" "foxy")
@@ -97,6 +98,12 @@ ENDIF()
 SET(NNS_ROS_COMMON_DIR ${PROJECT_SOURCE_DIR}/common)
 SET(EXTRA_CFLAGS -Wall -Werror -fPIC -g)
 SET(EXTRA_CXXFLAGS -Wall -Werror -fPIC -g)
+IF(ENABLE_COV)
+  SET(CMAKE_BUILD_TYPE Debug)
+  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fprofile-arcs -ftest-coverage")
+  SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -ggdb -fprofile-arcs -ftest-coverage")
+  SET(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} -fprofile-arcs -ftest-coverage -lgcov")
+ENDIF(ENABLE_COV)
 
 ADD_COMPILE_OPTIONS(
   "$<$<COMPILE_LANGUAGE:C>:${EXTRA_CFLAGS}>"
