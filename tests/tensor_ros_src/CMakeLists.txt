@@ -1,15 +1,17 @@
-ADD_EXECUTABLE(unittest_tensor_ros_src unittest_tensor_ros_src.cpp ${GTEST_SRC})
-TARGET_INCLUDE_DIRECTORIES(unittest_tensor_ros_src PRIVATE
+SET(TEST_NAME unittest_${ELMNT_NAME_SRC})
+
+ADD_EXECUTABLE(${TEST_NAME} unittest_tensor_ros_src.cpp ${GTEST_SRC})
+TARGET_INCLUDE_DIRECTORIES(${TEST_NAME} PRIVATE
   ${PKGS_COMMON_INCLUDE_DIRS}
   ${PKGS_TEST_INCLUDE_DIRS}
   ${GTEST_INC}
 )
 
-TARGET_LINK_LIBRARIES(unittest_tensor_ros_src
+TARGET_LINK_LIBRARIES(${TEST_NAME}
   ${PKGS_COMMON_LIBRARIES}
   ${PKGS_TEST_LIBRARIES}
   ${GTEST_LINK_LIBS}
 )
 
-ADD_TEST(NAME unittest_tensor_ros_src.properties
-  COMMAND unittest_tensor_ros_src --gtest_filter=test_tensor_ros_src.properties)
+ADD_TEST(NAME ${TEST_NAME}.properties
+  COMMAND ${TEST_NAME} --gtest_filter=test_tensor_ros_src.properties)
