@@ -1,22 +1,15 @@
 name: pdebuild-bionic
 
-on:
-  pull_request:
-    branches: main
-
-env:
-
 jobs:
   build:
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@v2
     - name: Create the build environment using pbuilder
       shell: bash
       run:  |
         sudo apt update
         sudo apt install pbuilder debhelper curl devscripts -y
-        bash .github/workflows/scripts/setup-pbuilder-env-bionic.sh
+        bash .github/workflows/pdebuild/scripts/setup-pbuilder-env-bionic.sh
     - name: Run pdebuild
       run:  |
         sudo pdebuild
