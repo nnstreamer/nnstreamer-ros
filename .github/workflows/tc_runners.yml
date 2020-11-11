@@ -1,0 +1,61 @@
+name: TC runner
+
+on:
+  pull_request:
+    branches: [ $default-branch ]
+
+jobs:
+  ros1-run-testcases-on-16.04:
+    runs-on: ubuntu-16.04
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+    - name: Resolve build dependencies
+      run: |
+        sudo add-apt-repository ppa:nnstreamer/ppa -y
+        sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+        sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
+        sudo apt update
+        sudo apt install ros-kinetic-ros-base nnstreamer-dev bsdmainutils libgstreamer1.0-dev -y
+        sudo apt install libgstreamer-plugins-base1.0-dev libglib2.0-dev gstreamer1.0-plugins-base gstreamer1.0-tools -y
+        sudo apt install libgtest-dev ssat python2.7 python3 -y
+    - name: Create Build Environment
+      shell: bash
+      run: |
+        source /opt/ros/kinetic/setup.bash
+        cmake -E make_directory ${{runner.workspace}}/build
+    - name: Configure CMake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: |
+        source /opt/ros/kinetic/setup.bash
+        cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DROS_VERSION=kinetic
+    - name: Make
+      shell: bash
+      run: |
+        source /opt/ros/kinetic/setup.bash
+        cmake --build . --config $BUILD_TYPE
+    - name: Run the TCs
+      shell: bash
+      run: |
+        source /opt/ros/kinetic/setup.bash
+        export GST_PLUGIN_PATH=$(pwd)/build/gst/tensor_ros_sink:$(pwd)/build/gst/tensor_ros_src
+        export LD_LIBRARY_PATH=$(pwd)/build/devel/lib:${LD_LIBRARY_PATH}
+        ./tests/tensor_ros_sink/unittest_tensor_ros_sink
+        ./tests/tensor_ros_src/unittest_tensor_ros_src
+        cd tests && ssat
+
+  ros1-ros2-run-testcases-on-18.04:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+  ros1-run-testcases-on-20.04:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
