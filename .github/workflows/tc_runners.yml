@@ -1,6 +1,8 @@
 name: TC runner
 
 on:
+  push:
+    branches: main
   pull_request:
     branches: main
 
@@ -32,7 +34,7 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential bsdmainutils cmake libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev libglib2.0-dev gstreamer1.0-plugins-base \
-            gstreamer1.0-tools libgtest-dev ssat python2.7 nnstreamer-dev
+            lcov gstreamer1.0-tools libgtest-dev ssat python2.7 nnstreamer-dev
           if [[ ${{matrix.ros_distro}} == "eloquent" ]]
           then
             sudo apt install -y ros-${{matrix.ros_distro}}-ament-cmake \
@@ -69,7 +71,7 @@ jobs:
         working-directory: ${{runner.workspace}}/build
         run: |
           source /opt/ros/${{matrix.ros_distro}}/setup.sh
-          cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DROS_VERSION=${{matrix.ros_distro}}
+          cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DROS_VERSION=${{matrix.ros_distro}} -DENABLE_COV=TRUE
       - name: Make
         shell: bash
         working-directory: ${{runner.workspace}}/build
@@ -92,3 +94,24 @@ jobs:
             ${{runner.workspace}}/build/tests/tensor_ros_src/unittest_tensor_ros_src
             cd tests && ssat
           fi
+      - name: Run lcov
+        shell: bash
+        run: |
+          rm -rf coverage && mkdir -p coverage
+          lcov -t 'NNStreamer-ROS Unit Test Coverage' -o unittest.info -c -d ${{runner.workspace}}/build -b . --no-external
+          lcov -r unittest.info "*/tests/*" "*rosidl_generator*/*" "*rosidl_typesupport*/*" "*.h" -o coverage/lcov.info
+      - name: Coveralls Parallel
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
+          flag-name: run-${{matrix.os}}-${{matrix.ros_distro}}
+          parallel: true
+  finish:
+    needs: run-testcases
+    runs-on: ubuntu-latest
+    steps:
+      - name: Coverall
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
