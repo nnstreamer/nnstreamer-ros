@@ -12,12 +12,12 @@ Build-Depends: build-essential, bsdmainutils, gcc (>=5), cmake, debhelper (>=9),
  ros-kinetic-message-generation | ros-melodic-message-generation | ros-noetic-message-generation,
  ros-kinetic-roscpp | ros-melodic-roscpp | ros-noetic-roscpp,
  ros-kinetic-rosbag | ros-melodic-rosbag | ros-noetic-rosbag,
- ros-eloquent-ament-cmake, ros-eloquent-pluginlib, ros-eloquent-rcutils,
- ros-eloquent-rclcpp, ros-eloquent-std-msgs,  ros-eloquent-rosbag2,
- ros-eloquent-rosbag2-storage, ros-eloquent-rosbag2-storage-default-plugins,
- ros-eloquent-sqlite3-vendor, ros-eloquent-rosbag2-converter-default-plugins,
- ros-eloquent-rmw-fastrtps-cpp, ros-eloquent-rosidl-default-generators,
- ros-eloquent-ament-lint-auto, ros-eloquent-ament-lint-cmake
+ ros-eloquent-ament-cmake <!ros1>, ros-eloquent-pluginlib <!ros1>, ros-eloquent-rcutils <!ros1>,
+ ros-eloquent-rclcpp <!ros1>, ros-eloquent-std-msgs <!ros1>, ros-eloquent-rosbag2 <!ros1>,
+ ros-eloquent-rosbag2-storage <!ros1>, ros-eloquent-rosbag2-storage-default-plugins <!ros1>,
+ ros-eloquent-sqlite3-vendor <!ros1>, ros-eloquent-rosbag2-converter-default-plugins <!ros1>,
+ ros-eloquent-rmw-fastrtps-cpp <!ros1>, ros-eloquent-rosidl-default-generators <!ros1>,
+ ros-eloquent-ament-lint-auto <!ros1>, ros-eloquent-ament-lint-cmake <!ros1>
 Standards-Version: 4.5.0
 Homepage: https://github.com/nnsuite/nnstreamer-ros
 
@@ -30,5 +30,6 @@ Description: nnstreamer extension plugins for ROS support
 Package: nnstreamer-ros2
 Architecture: any
 Multi-Arch: same
+Build-Profiles: <!ros1>
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: nnstreamer extension plugins for ROS support
