@@ -1,0 +1,31 @@
+name: pdebuild
+
+on:
+  pull_request:
+    branches: main
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-16.04, ubuntu-18.04]
+        include:
+          - os: ubuntu-18.04
+            extra_debbuildopts: '--debbuildopts "-Pros2"'
+    steps:
+    - uses: actions/checkout@v2
+    - name: Create the build environment using pbuilder
+      shell: bash
+      run:  |
+        sudo apt update
+        sudo apt install curl sed -y
+        bash .github/workflows/scripts/setup-pbuilder-env.sh
+    - name: Run pdebuild
+      shell: bash
+      run:  |
+        if [[ ${{ matrix.os }} == "ubuntu-16.04" ]]
+        then
+          export DEB_BUILD_PROFILES=ros1
+        fi
+        pdebuild
