@@ -1,0 +1,9 @@
+DISTRIBUTION=@distro@
+COMPONENTS="main restricted universe multiverse"
+OTHERMIRROR="deb http://us.archive.ubuntu.com/ubuntu @distro@ main restricted universe multiverse |\
+        deb http://us.archive.ubuntu.com/ubuntu @distro@-updates main restricted universe multiverse |\
+        deb http://us.archive.ubuntu.com/ubuntu @distro@-backports main restricted universe multiverse |\
+        deb [trusted=yes] http://ppa.launchpad.net/nnstreamer/ppa/ubuntu @distro@ main |\
+        deb [trusted=yes] http://packages.ros.org/ros/ubuntu @distro@ main |\
+        deb [trusted=yes] http://packages.ros.org/ros2/ubuntu @distro@ main"
+APTKEYRINGS=(/etc/apt/trusted.gpg)
