@@ -101,6 +101,7 @@ jobs:
           lcov -t 'NNStreamer-ROS Unit Test Coverage' -o unittest.info -c -d ${{runner.workspace}}/build -b . --no-external
           lcov -r unittest.info "*/tests/*" "*rosidl_generator*/*" "*rosidl_typesupport*/*" "*.h" -o coverage/lcov.info
       - name: Coveralls Parallel
+        if: ${{ github.event_name == 'push' }}
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.github_token }}
@@ -111,6 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Coverall
+        if: ${{ github.event_name == 'push' }}
         uses: coverallsapp/github-action@master
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
