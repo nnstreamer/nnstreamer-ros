@@ -21,7 +21,7 @@ jobs:
       shell: bash
       run:  |
         sudo apt update
-        sudo apt install coreutils curl sed gawk -y
+        sudo apt install coreutils curl sed gawk git -y
         bash .github/workflows/scripts/setup-pbuilder-env.sh
     - name: Run pdebuild
       shell: bash
@@ -38,7 +38,10 @@ jobs:
         BINTRAY_API_KEY : ${{ secrets.BINTRAY_API_KEY }}
       run:  |
         export VER=`cat ./debian/changelog | head -n1 | awk -F ['()'] {'print $2}'`
+        export REL_VER=`git describe --long --tags`
         export DISTRO=`lsb_release -sc`
-        for each_deb in $(ls /var/cache/pbuilder/result/nnstreamer-ros*_${VER}_amd64.deb); do
-          curl -T "${each_deb}" -uwooksong:"${BINTRAY_API_KEY}" -H "X-Bintray-Package:nnstreamer-ros" -H "X-Bintray-Version:${VER}" -H "X-Bintray-Debian-Distribution:${DISTRO}" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:amd64" -H "X-Bintray-Publish:1" https://api.bintray.com/content/nnsuite/nnstreamer-ros/pool/main/m/$(basename "${each_deb}")
+        export ARCH=`dpkg-architecture -q DEB_TARGET_ARCH`
+        for each_deb in $(ls /var/cache/pbuilder/result/nnstreamer-ros*_${VER}_${ARCH}.deb); do
+          export PKG_NAME=`basename ${each_deb} | awk -F_ '{print $1}'`_${REL_VER}_${DISTRO}_${ARCH}.deb
+          curl -T "${each_deb}" -uwooksong:"${BINTRAY_API_KEY}" -H "X-Bintray-Package:nnstreamer-ros" -H "X-Bintray-Version:${VER}" -H "X-Bintray-Debian-Distribution:${DISTRO}" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:${ARCH}" -H "X-Bintray-Publish:1" https://api.bintray.com/content/nnsuite/nnstreamer-ros/pool/main/m/${PKG_NAME}
         done
