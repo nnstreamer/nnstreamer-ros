@@ -3,6 +3,8 @@ name: pdebuild
 on:
   pull_request:
     branches: main
+  push:
+    branches: main
 
 jobs:
   build:
@@ -19,7 +21,7 @@ jobs:
       shell: bash
       run:  |
         sudo apt update
-        sudo apt install curl sed -y
+        sudo apt install coreutils curl sed gawk -y
         bash .github/workflows/scripts/setup-pbuilder-env.sh
     - name: Run pdebuild
       shell: bash
@@ -29,3 +31,14 @@ jobs:
           export DEB_BUILD_PROFILES=ros1
         fi
         pdebuild
+    - name: Upload the generated deb file to the bintray repository
+      if: ${{ github.event_name == 'push' }}
+      shell: bash
+      env:
+        BINTRAY_API_KEY : ${{ secrets.BINTRAY_API_KEY }}
+      run:  |
+        export VER=`cat ./debian/changelog | head -n1 | awk -F ['()'] {'print $2}'`
+        export DISTRO=`lsb_release -sc`
+        for each_deb in $(ls /var/cache/pbuilder/result/nnstreamer-ros*_${VER}_amd64.deb); do
+          curl -T "${each_deb}" -uwooksong:"${BINTRAY_API_KEY}" -H "X-Bintray-Package:nnstreamer-ros" -H "X-Bintray-Version:${VER}" -H "X-Bintray-Debian-Distribution:${DISTRO}" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:amd64" -H "X-Bintray-Publish:1" https://api.bintray.com/content/nnsuite/nnstreamer-ros/pool/main/m/$(basename "${each_deb}")
+        done
