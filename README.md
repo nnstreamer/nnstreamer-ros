@@ -1,37 +1,15 @@
 # NNStreamer-ROS [![GitHub license](https://badgen.net/badge/license/LGPL-2.1/blue)](./LICENSE)
 
-[![Code Coverage](http://nnsuite.mooo.com/nnstreamer-ros/ci/badge/codecoverage.svg)](http://nnsuite.mooo.com/nnstreamer-ros/ci/gcov_html/index.html)
+[![Coverage Status](https://coveralls.io/repos/github/nnstreamer/nnstreamer-ros/badge.svg?branch=main)](https://coveralls.io/github/nnstreamer/nnstreamer-ros?branch=main)
 
 ## Official Releases
+|    |     Distro    | Tizen | Ubuntu |
+|:--:|      :--:     |     :--:    |   :--:  |
+|ROS1|Kinetic Kame|[![Tizen6.0](https://img.shields.io/badge/6.0-armv7l%20%7C%20aarch64%20%7C%20x86__64-blue)](http://download.tizen.org/live/devel%3A/Tizen%3A/6.0%3A/AI/Tizen_Unified_standard/)|[![Ubuntu16.04](https://img.shields.io/badge/16.04-x86__64-blue)]()|
+|    |Melodic Morenia|[![NotSupported](https://img.shields.io/badge/Not%20Supported-red)]()|[![Ubuntu18.04](https://img.shields.io/badge/18.04-x86__64-blue)]()|
+|    |Noetic Ninjemys|[![NotSupported](https://img.shields.io/badge/Not%20Supported-red)]()|[![Ubuntu18.04](https://img.shields.io/badge/18.04-x86__64-blue)]()|[![Ubuntu16.04](https://img.shields.io/badge/16.04-x86__64-blue)]()|
+|ROS2|Eloquent Elusor|[![NotSupported](https://img.shields.io/badge/Not%20Supported-red)]()|[![Ubuntu18.04](https://img.shields.io/badge/18.04-x86__64-blue)]()|
 
-| Arch | [Tizen](http://download.tizen.org/live/devel%3A/AIC%3A/Tizen%3A/5.0%3A/nnsuite/standard/) | [Ubuntu](https://launchpad.net/~nnstreamer/+archive/ubuntu/ppa) | Yocto |
-|  :--:  |    :--:    |     :--:    |   :--:  |
-|        |    5.5     | 16.04/18.04 |   TBD   |
-|   x64  | Available  |   Planned   |   WiP   |
-|   x86  | Available  |   Planned   |   WiP   |
-|  arm64 | Available  |   Planned   |   WiP   |
-|   arm  | Available  |   Planned   |   WiP   |
-
-## Getting Started (WiP)
-
-#### Installing from source
-```bash
-$ git clone https://github.com/nnsuite/nnstreamer-ros.git
-$ cd nnstreamer-ros
-$ mkdir -p build
-$ cd build
-$ cmake ..
-$ make
-# By default for Ubuntu 16.04 LTS on x64, plugins for the nnstreamer will be installed
-# into under /usr/lib/x86_64-linux-gnu/ and ROS related files (shared library, header files
-# for custom defined message, pkg-config files, ...) will be installed into under /opt/ros/kinetic/.
-$ sudo make install
-```
-You can change installation directories using cmake custom defined variables such as ROS_VERSION, ROS_BASE_PREFIX, ROS_INSTALL_PREFIX, NNS_INSTALL_PREFIX. For example, ``` cmake .. ``` is equivalent to
-```bash
-$ cmake .. -DROS_VERSION=kinetic -DROS_BASE_PREFIX=/etc/ros -DROS_INSTALL_PREFIX=/etc/ros \
--DNNS_INSTALL_PREFIX=/usr -DCMAKE_INSTALL_LIBDIR=lib/x86_64-linux-gnu \
--DCMAKE_LIBRARY_ARCHITECTURE=x86_64-linux-gnu
-```
-
-## Usage Examples (TBD)
+## Getting Started
+* For Ubuntu distributions, please refer [here](documents/getting-started-ubuntu.md).
+* For Tizen, please refer [here](documents/getting-started-tizen.md).
