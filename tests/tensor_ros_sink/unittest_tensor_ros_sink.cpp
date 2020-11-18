@@ -12,6 +12,8 @@
 #include <gst/check/gstharness.h>
 #include <nnstreamer/nnstreamer_plugin_api.h>
 
+#include "nns_ros_publisher.h"
+
 #if (!(defined(WITH_ROS1) || defined(WITH_ROS2)))
 #error "One of WITH_ROS or WITH_ROS2 should be defined."
 #endif /** (!(defined(WITH_ROS) || defined(WITH_ROS2)) */
@@ -30,19 +32,26 @@
 TEST (test_tensor_ros_sink, properties)
 {
   const gchar default_name[] = "tensorrossink0";
-  gchar *name;
-  const gint64 default_max_lateness = -1;
-  gint64 max_lateness, res_max_lateness;
-  const gboolean default_qos = TRUE;
-  gboolean qos, res_qos;
-  const guint default_signal_rate = 0;
-  guint signal_rate, res_signal_rate;
+  const gchar *default_location = NULL;
+  const gboolean default_dummy = FALSE;
+  const gboolean default_save_rosbag = FALSE;
   const gboolean default_emit_signal = TRUE;
-  gboolean emit_signal, res_emit_signal;
   const gboolean default_silent = TRUE;
+  const gboolean default_qos = TRUE;
+  const gint64 default_max_lateness = -1;
+  const guint default_signal_rate = 0;
+  gboolean emit_signal, res_emit_signal;
+  gboolean save_rosbag, res_save_rosbag;
   gboolean silent, res_silent;
+  gboolean dummy, res_dummy;
+  gboolean qos, res_qos;
+  gint64 max_lateness, res_max_lateness;
+  guint signal_rate, res_signal_rate;
   GstHarness *hrnss;
   GstElement *sink;
+  gchar *res_location = NULL;
+  gchar *location = NULL;
+  gchar *name;
 
   hrnss = gst_harness_new_empty ();
   ASSERT_TRUE (hrnss != NULL);
@@ -98,6 +107,31 @@ TEST (test_tensor_ros_sink, properties)
   g_object_set (sink, "silent", !default_silent, NULL);
   g_object_get (sink, "silent", &res_silent, NULL);
   EXPECT_EQ (!default_silent, res_silent);
+
+  /** default enable-save-rosbag is FALSE */
+  g_object_get (sink, "enable-save-rosbag", &save_rosbag, NULL);
+  EXPECT_EQ (default_save_rosbag, save_rosbag);
+
+  g_object_set (sink, "enable-save-rosbag", !default_save_rosbag, NULL);
+  g_object_get (sink, "enable-save-rosbag", &res_save_rosbag, NULL);
+  EXPECT_EQ (!default_save_rosbag, res_save_rosbag);
+
+  /** default enable-save-rosbag is FALSE but we set it to TRUE */
+  g_object_get (sink, "dummy", &dummy, NULL);
+  EXPECT_EQ (!default_dummy, dummy);
+
+  g_object_set (sink, "dummy", default_dummy, NULL);
+  g_object_get (sink, "dummy", &res_dummy, NULL);
+  EXPECT_EQ (default_dummy, res_dummy);
+
+  /** default location is NULL */
+  g_object_get (sink, "location", location, NULL);
+  EXPECT_EQ (default_location, location);
+
+  g_object_set (sink, "location", "path-to-save-rosbag-file", NULL);
+  g_object_get (sink, "location", &res_location, NULL);
+  EXPECT_STREQ ("path-to-save-rosbag-file", res_location);
+  g_free (res_location);
 
   g_object_unref (sink);
   gst_harness_teardown (hrnss);
