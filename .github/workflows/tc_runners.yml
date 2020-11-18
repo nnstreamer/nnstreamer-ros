@@ -92,6 +92,7 @@ jobs:
             export LD_LIBRARY_PATH=${{runner.workspace}}/build/devel/lib:${LD_LIBRARY_PATH}
             ${{runner.workspace}}/build/tests/tensor_ros_sink/unittest_tensor_ros_sink
             ${{runner.workspace}}/build/tests/tensor_ros_src/unittest_tensor_ros_src
+            export BUILD_PATH=${{runner.workspace}}/build
             cd tests && ssat
           fi
       - name: Run lcov
