@@ -11,7 +11,6 @@
 import sys
 import os
 import struct
-import rosbag
 
 ##
 # @brief Get the number of colors in a pixel from a given 'colorspace'
@@ -47,23 +46,24 @@ def get_unpack_format_and_bytes_per_data(data_type, num_data, byte_order=0):
     else:
         unpack_format = '>'
 
-    unpack_format += str(num_data)
-
     lower_data_type = data_type.lower()
     if lower_data_type in ['uint8', 'int8', 's8', 'u8']:
         bytes_per_data = 1
+        unpack_format += str(num_data / bytes_per_data)
         if lower_data_type in ['uint8', 'u8']:
             unpack_format += 'B'
         else:
             unpack_format += 'b'
     elif lower_data_type in ['uint16', 'int16', 's16le', 's16be', 'u16le', 'u16be']:
         bytes_per_data = 2
+        unpack_format += str(num_data / bytes_per_data)
         if lower_data_type in ['uint16', 'U16le', 'U16be']:
             unpack_format += 'H'
         else:
             unpack_format += 'h'
     elif lower_data_type in ['uint32', 'int32', 'float32', 's32le', 's32be', 'u32le', 'u32be', 'f32le', 'f32be']:
         bytes_per_data = 4
+        unpack_format += str(num_data / bytes_per_data)
         if lower_data_type in ['uint32', 'u32le', 'u32be']:
             unpack_format += 'I'
         elif lower_data_type in ['int32', 's32le', 's32be']:
@@ -72,6 +72,7 @@ def get_unpack_format_and_bytes_per_data(data_type, num_data, byte_order=0):
             unpack_format += 'f'
     elif lower_data_type in ['uint64', 'int64', 'float64', 'f64le', 'f64be']:
         bytes_per_data = 8
+        unpack_format += str(num_data / bytes_per_data)
         if lower_data_type == 'uint64':
             unpack_format += 'Q'
         elif lower_data_type == 'int32':
@@ -109,7 +110,7 @@ def get_tensor_stream_from_raw_video(data_type, colorspace, width, height, filen
         return None
     num_data = colors_per_px * width * height
     unpack_format, bytes_per_data = get_unpack_format_and_bytes_per_data(
-        data_type, num_data)
+        data_type, num_data, byte_order)
     if unpack_format is None and bytes_per_data == -1:
         return None
 
@@ -170,15 +171,15 @@ def get_tensor_stream_from_bag(filename, byte_order=0):
 
     data_type = msg.tensors[0].layout.dim[0].label
     if msg.tensors[0].layout.dim[1].label != data_type or \
-       msg.tensors[0].layout.dim[2].label != data_type or \
-       msg.tensors[0].layout.dim[3].label != data_type:
+            msg.tensors[0].layout.dim[2].label != data_type or \
+            msg.tensors[0].layout.dim[3].label != data_type:
         return None
     num_data = msg.tensors[0].layout.dim[3].size * \
         msg.tensors[0].layout.dim[2].size * \
         msg.tensors[0].layout.dim[1].size
 
     unpack_format, bytes_per_data = get_unpack_format_and_bytes_per_data(
-        data_type, num_data)
+        data_type, num_data, byte_order)
     if unpack_format is None and bytes_per_data == -1:
         return None
 
@@ -190,6 +191,74 @@ def get_tensor_stream_from_bag(filename, byte_order=0):
 
     return data_stream
 
+##
+# @brief Get a tuple of data stream in a tensor from a rosbag file
+# @param[in] data_type a string indicating the data type such as uint8, uint16...
+# @param[in] colorspace_or_channels 'RGB','BGR', 'RGBx', 'BGRx', 'xRGB', 'xBGR', 'RGBA', 'BGRA', 'ARGB', 'ABGR', 'GRAY8'
+#            or an integer [1..2147483647] indicating the number of channels
+# @param[in] width_or_frames_per_tensor the width of the image
+#            or an integer indicating the number of frames in a tensor
+# @param[in] height the height of the image or ignored
+# @param[in] filename a name of file that contains raw data of the image
+# @param[in] byte_order 0 indicates 'little-endian' and the others indicate 'big-endian' (optional)
+# @return a tuple of data stream in a tensor or None (if it fails)
+
+
+# @param[in] channels an integer [1..2147483647] indicating the number of channels
+# @param[in] frames_per_tensor an integer indicating the number of frames in a tensor
+def get_tensor_stream_from_bag2(data_type, colorspace_or_channels, width_or_frames_per_tensor, height, filename, byte_order=0):
+
+    MSG_FORMAT_OPEN_ERR = 'Failed to open the rosbag2 file: {}: '.format(
+        filename)
+    SQL_Q = 'SELECT data FROM messages'
+    LEN_HEADER = 100
+
+    if not os.path.exists(filename):
+        print(MSG_FORMAT_OPEN_ERR + 'the file does not exist')
+        return None
+
+    conn = sqlite3.connect(filename)
+    with conn:
+        cur = conn.cursor()
+        try:
+            cur.execute(SQL_Q)
+            rows = cur.fetchall()
+        except sqlite3.Error as e:
+            print('Failed to execute a SQL query to get data from the given rosbag2 database: {}'
+                .format(e.args[0]))
+            return None
+
+    # Verfication procedure:
+    # This function is only for the case that the bag file has a tensor in a single msg
+    #   1. check that the number of msg is 1
+    #   2. check that the number of tensors is 1
+    num_msg = len(rows)
+    if num_msg != 1:
+        return None
+
+    blob = rows[0][0]
+    blob = blob[LEN_HEADER:]
+
+    if type(colorspace_or_channels) is type(''):
+        colors_per_px = get_colors_per_px(colorspace_or_channels)
+        if colors_per_px is None:
+            return None
+        num_data = colors_per_px * width_or_frames_per_tensor * height
+    else:
+        num_data = colorspace_or_channels * width_or_frames_per_tensor
+
+    size_blob = len(blob)
+    unpack_format, bytes_per_data = get_unpack_format_and_bytes_per_data(
+        data_type, size_blob, byte_order)
+    num_tensors = size_blob / (num_data *  bytes_per_data)
+    if num_tensors != 1:
+        return None
+
+    if unpack_format is None and bytes_per_data == -1:
+        return None
+
+    data_stream = struct.unpack_from(unpack_format, blob)
+    return data_stream
 
 ##
 # @brief Compare a file containing raw data for a video frame with a rosbag file corresponding to such raw data file
@@ -209,11 +278,18 @@ def compare_video_raw_and_bag(argv):
     if data_stream_raw is None or len(data_stream_raw) == 0:
         exit(1)
 
-    data_stream_bag = get_tensor_stream_from_bag(filename_rosbag)
+    if ros_ver == 1:
+        data_stream_bag = get_tensor_stream_from_bag(filename_rosbag)
+    else:
+        data_stream_bag = get_tensor_stream_from_bag2(data_type, colorspace, width, height, filename_rosbag)
     if data_stream_bag is None or len(data_stream_bag) == 0:
         exit(1)
-    if data_stream_raw != data_stream_bag:
-        exit(1)
+    if ros_ver == 1:
+        if data_stream_raw != data_stream_bag:
+            exit(1)
+    else:
+        if data_stream_raw != data_stream_bag:
+            exit(1)
 
 ##
 # @brief Get a tuple of data stream in a tensor from a raw data file
@@ -270,21 +346,44 @@ def compare_audio_raw_and_bag(argv):
     if data_stream_raw is None or len(data_stream_raw) == 0:
         exit(1)
 
-    data_stream_bag = get_tensor_stream_from_bag(filename_rosbag, byte_order)
+    if ros_ver == 1:
+        data_stream_bag = get_tensor_stream_from_bag(filename_rosbag)
+    else:
+        data_stream_bag = get_tensor_stream_from_bag2(data_type, channels,
+                frames_per_tensor, 1, filename_rosbag, byte_order)
     if data_stream_bag is None or len(data_stream_bag) == 0:
         exit(1)
-    if data_stream_raw != data_stream_bag:
-        exit(1)
+    if ros_ver == 1:
+        if data_stream_raw != data_stream_bag:
+            exit(1)
+    else:
+        for i in range(len(data_stream_raw)):
+            if data_stream_raw[i] != data_stream_bag[i]:
+                return(1)
 
 
-print(sys.argv[3])
+global ros_ver
+
+ros_ver = int(sys.argv[-1])
 if sys.argv[3] in ['RGB','BGR', 'RGBx', 'BGRx', 'xRGB', 'xBGR', \
     'RGBA', 'BGRA', 'ARGB', 'ABGR', 'GRAY8']:
-    if len(sys.argv) != 7:
+    if len(sys.argv) != 8:
+        exit(1)
+    if ros_ver == 1:
+        import rosbag
+    elif ros_ver == 2:
+        import sqlite3
+    else:
         exit(1)
     compare_video_raw_and_bag(sys.argv)
 elif int(sys.argv[3]) > 0 and int(sys.argv[3]) <= 2147483647:
-    if len(sys.argv) != 6:
+    if len(sys.argv) != 7:
+        exit(1)
+    if ros_ver == 1:
+        import rosbag
+    elif ros_ver == 2:
+        import sqlite3
+    else:
         exit(1)
     compare_audio_raw_and_bag(sys.argv)
 else:
