@@ -80,16 +80,6 @@ endif
 override_dh_install:
 
 override_dh_auto_test:
-	. ${ROS_BASE_PREFIX}/$(ROS_DISTRO)/setup.sh && \
-			cd $(ROOT_DIR)/build/ros && \
-			LD_LIBRARY_PATH=devel/lib:${ROS_BASE_PREFIX}/$(ROS_DISTRO)/lib GST_PLUGIN_PATH=gst/tensor_ros_sink \
-	./tests/tensor_ros_sink/unittest_tensor_ros_sink -V
-ifeq ($(filter ros1,$(DEB_BUILD_PROFILES)),)
-	. ${ROS_BASE_PREFIX}/$(ROS_DISTRO)/setup.sh && \
-			cd tests && ssat
-endif
 
 override_dh_auto_clean:
 	rm -rf build
-	find . -name *.log | xargs rm -f
-	find . -name *.bag | xargs rm -f
