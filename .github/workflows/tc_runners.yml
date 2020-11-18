@@ -83,6 +83,7 @@ jobs:
         run: |
           source /opt/ros/${{matrix.ros_distro}}/setup.sh
           export GST_PLUGIN_PATH=${{runner.workspace}}/build/gst/tensor_ros_sink:${{runner.workspace}}/build/gst/tensor_ros_src
+          export BUILD_PATH=${{runner.workspace}}/build
           if [[ ${ROS_VERSION} == "2" ]]
           then
             export LD_LIBRARY_PATH=${{runner.workspace}}/build/ros2:${LD_LIBRARY_PATH}
@@ -92,8 +93,8 @@ jobs:
             export LD_LIBRARY_PATH=${{runner.workspace}}/build/devel/lib:${LD_LIBRARY_PATH}
             ${{runner.workspace}}/build/tests/tensor_ros_sink/unittest_tensor_ros_sink
             ${{runner.workspace}}/build/tests/tensor_ros_src/unittest_tensor_ros_src
-            cd tests && ssat
           fi
+          cd tests && ssat
       - name: Run lcov
         shell: bash
         run: |
