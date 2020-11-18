@@ -71,6 +71,8 @@ popd
 %check
 pushd build
 export GST_PLUGIN_PATH=$(pwd)/gst/tensor_ros_sink:$(pwd)/gst/tensor_ros_src
+export BUILD_PATH=$(pwd)
+export ROS_VERSION=1
 make test ARGS=-V
 popd
 pushd tests
