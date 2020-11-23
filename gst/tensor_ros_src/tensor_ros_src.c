@@ -70,7 +70,7 @@
 GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_src_debug);
 #define GST_CAT_DEFAULT gst_tensor_ros_src_debug
 
-#define DEFAULT_LIVE_MODE       TRUE
+#define DEFAULT_LIVE_MODE TRUE
 
 /**
  * @brief Flag to print minimized log.
@@ -83,6 +83,11 @@ GST_DEBUG_CATEGORY_STATIC (gst_tensor_ros_src_debug);
 #define DEFAULT_TIMEOUT 5.0
 
 /**
+ * @brief Flag to disable the load-rosbag mode
+ */
+#define DEFAULT_LOAD_ROSBAG FALSE
+
+/**
  * @brief tensor_ros_src properties
  */
 enum
@@ -92,6 +97,8 @@ enum
   PROP_TOPIC,       /*<< ROS topic name to subscribe */
   PROP_RATE,        /*<< Frequency rate to check the published topic */
   PROP_TIMEOUT,     /*<< Timeout in seconds waiting for the next message to receive */
+  PROP_LOAD_ROSBAG, /*<< The mode that generates streams from a given ROSBAG file */
+  PROP_LOCATION,    /*<< The path of the given ROSBAG file */
 };
 
 /**
@@ -200,6 +207,31 @@ gst_tensor_ros_src_class_init (GstTensorRosSrcClass * klass)
           (gdouble) 1, (gdouble) 600, (gdouble) DEFAULT_TIMEOUT,
           G_PARAM_READWRITE));
 
+    /**
+   * GstTensorRosSrc::enable-load-rosbag:
+   *
+   * The flag to enable/disable load-rosbag mode. If this mode is enabled,
+   * tensor_ros_src generates the streams from a given rosbag file rather
+   * than that from the ROS topic. If the location to load is not porvided
+   * with the 'location' property, an error occurs.
+   */
+  g_object_class_install_property (gobject_class, PROP_LOAD_ROSBAG,
+      g_param_spec_boolean ("enable-load-rosbag", "Enable-load-rosbag",
+          "Load a rosbag file to generate tensor(s) streams",
+          DEFAULT_LOAD_ROSBAG, G_PARAM_READWRITE));
+
+  /**
+   * GstTensorRosSrc::loction:
+   *
+   * A location of the rosbag file to load. If this is not specified with the
+   * enable-load-rosbag flag, an error will occur.
+   */
+  g_object_class_install_property (gobject_class, PROP_LOCATION,
+      g_param_spec_string ("location", "Location",
+          "Location of the rosbag file to load", NULL,
+          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
+
+
   gst_element_class_add_static_pad_template (gstelement_class,
       &src_pad_template);
 
@@ -221,6 +253,9 @@ gst_tensor_ros_src_init (GstTensorRosSrc * rossrc)
   rossrc->topic_name = NULL;
   rossrc->rate = (gdouble)  1;
   rossrc->timeout = (gdouble) DEFAULT_TIMEOUT;
+  rossrc->rosbag_to_load = DEFAULT_LOAD_ROSBAG;
+  rossrc->location = NULL;
+  rossrc->rosbag_to_load = NULL;
   rossrc->queue = NULL;
   rossrc->configured = FALSE;
   rossrc->nns_ros_bind_instance = NULL;
@@ -265,11 +300,21 @@ gst_tensor_ros_src_start (GstBaseSrc * src)
 
   rossrc = GST_TENSOR_ROS_SRC (src);
   g_return_val_if_fail (GST_IS_TENSOR_ROS_SRC (rossrc), FALSE);
-  if ((rossrc->topic_name == NULL) || (strlen (rossrc->topic_name) == 0)) {
+  if ((!rossrc->load_rosbag) && ((rossrc->topic_name == NULL) ||
+      (strlen (rossrc->topic_name)) == 0)) {
     g_critical (
-        "ERROR: Failed to start %s: topic to subscribe should be given.",
+        "ERROR: Failed to start %s: topic to subscribe should be given unless \"enable-load-rosbag\" is set.",
         GST_ELEMENT_NAME (GST_ELEMENT (src)));
     return FALSE;
+  } else if (rossrc->load_rosbag) {
+    if((rossrc->location == NULL) || (strlen (rossrc->location)) == 0) {
+      g_critical (
+          "ERROR: Failed to start %s: the path of the rosbag file to load should be given",
+          GST_ELEMENT_NAME (GST_ELEMENT (src)));
+      return FALSE;
+    }
+
+    rossrc->topic_name = "";
   }
 
   pid = getpid ();
@@ -278,12 +323,16 @@ gst_tensor_ros_src_start (GstBaseSrc * src)
 
   rossrc->nns_ros_bind_instance = nns_ros_subscriber_init (name_node,
       rossrc->topic_name, rossrc->rate, rossrc->timeout, &rossrc->configs,
-      FALSE);
+      rossrc->load_rosbag);
   g_free (name_node);
 
   g_return_val_if_fail (rossrc->nns_ros_bind_instance != NULL, FALSE);
 
   rossrc->queue = nns_ros_subscriber_get_queue (rossrc->nns_ros_bind_instance);
+  if (rossrc->load_rosbag) {
+    rossrc->rosbag_to_load = nns_ros_subscriber_open_readable_bag (
+        rossrc->nns_ros_bind_instance, rossrc->location);
+  }
 
   rossrc->configured = TRUE;
   gst_base_src_start_complete (src, GST_FLOW_OK);
@@ -393,6 +442,10 @@ gst_tensor_ros_src_set_property (GObject * object, guint prop_id,
       break;
 
     case PROP_TOPIC:
+    if (rossrc->configured) {
+        g_warning ("Cannot set the value of the \"topic\" property after the pipeline starts");
+        break;
+      }
       rossrc->topic_name = g_value_dup_string (value);
       silent_debug (rossrc, "topic name: %s\n", rossrc->topic_name);
       break;
@@ -405,6 +458,26 @@ gst_tensor_ros_src_set_property (GObject * object, guint prop_id,
     case PROP_TIMEOUT:
       rossrc->timeout = g_value_get_double (value);
       silent_debug (rossrc, "Timeout in seconds: %lf\n", rossrc->timeout);
+      break;
+
+    case PROP_LOAD_ROSBAG:
+      if (rossrc->configured) {
+        g_warning ("Cannot set the value of the \"enable-load-rosbag\" property after the pipeline starts");
+        break;
+      }
+      rossrc->load_rosbag = g_value_get_boolean (value);
+      silent_debug (rossrc, "Load rosbag Mode: %s\n",
+          rossrc->silent ? "true" : "false");
+      break;
+
+    case PROP_LOCATION:
+      if (rossrc->configured) {
+        g_warning ("Cannot set the value of the \"location\" property after the pipeline starts");
+        break;
+      }
+      rossrc->location = g_value_dup_string (value);
+      silent_debug (rossrc, "The path of the given rosbag to load: %s\n",
+          rossrc->location);
       break;
 
     default:
@@ -437,6 +510,14 @@ gst_tensor_ros_src_get_property (GObject * object, guint prop_id,
 
     case PROP_TIMEOUT:
       g_value_set_double (value, rossrc->timeout);
+      break;
+
+    case PROP_LOAD_ROSBAG:
+      g_value_set_boolean (value, rossrc->load_rosbag);
+      break;
+
+    case PROP_LOCATION:
+      g_value_set_string (value, rossrc->location);
       break;
 
     default:

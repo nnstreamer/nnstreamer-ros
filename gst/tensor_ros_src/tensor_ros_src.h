@@ -48,15 +48,19 @@ struct _GstTensorRosSrc
   GstPushSrc parent;
 
   GstTensorsConfig configs;   /** Output Tensors configuration */
-  gboolean configured;        /** is configured based on Ros message */
+  gboolean configured;        /** Is configured based on Ros message */
   gboolean silent;
-  GThread *thread;            /** ros subscribe thread */
+  GThread *thread;            /** ROS subscribe thread */
 
   gchar *topic_name;          /** ROS topic name to subscribe */
   gdouble timeout;            /** Timeout in seconds waiting for the next message to receive */
-  gdouble rate;               /** frequency rate to check */
+  gdouble rate;               /** Frequency rate to check */
 
-  GAsyncQueue *queue;         /** data queue */
+  gboolean load_rosbag;       /**< TRUE to load a given rosbag file */
+  gchar *location;            /**< The location of the rosbag file to load */
+  void *rosbag_to_load;       /**< A handle for the rosbag instance */
+
+  GAsyncQueue *queue;         /** Data queue */
   void *nns_ros_bind_instance;
 };
 

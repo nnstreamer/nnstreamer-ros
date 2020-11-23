@@ -50,7 +50,7 @@ public:
       const gdouble rate, const gdouble timeout, GstTensorsConfig *configs,
       gboolean is_dummy)
   {
-    this->is_configured = false;
+    this->configured = false;
     this->num_tensors = 0;
     this->configs = configs;
     this->str_node_name = std::string (node_name);
@@ -93,7 +93,7 @@ protected:
 
   std::mutex g_m;
   // Variables for GST configuration
-  bool is_configured;
+  bool configured;
   guint num_tensors;
   GstTensorsConfig *configs;
 
@@ -128,6 +128,7 @@ void *nns_ros_subscriber_init (const gchar *node_name, const char *topic_name,
 void nns_ros_subscriber_fianlize (void *instance);
 GAsyncQueue *nns_ros_subscriber_get_queue (void *instance);
 void nns_ros_subscriber_put_queue (void *instance);
+void *nns_ros_subscriber_open_readable_bag (void *instance, const char *path);
 
 #ifdef __cplusplus
 }
