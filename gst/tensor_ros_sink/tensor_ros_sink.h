@@ -1,27 +1,14 @@
+/* SPDX-License-Identifier: LGPL-2.1-only */
 /**
- * GStreamer
- * Copyright (C) 2005 Thomas Vander Stichele <thomas@apestaart.org>
- * Copyright (C) 2005 Ronald S. Bultje <rbultje@ronald.bitfreak.net>
- * Copyright (C) 2018 Samsung Electronics Co., Ltd.
+ * Copyright (C) 2020 Wook Song <wook16.song@samsung.com>
+ * Copyright (C) 2020 Samsung Electronics Co., Ltd.
  *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Library General Public
- * License as published by the Free Software Foundation; 
- * version 2.1 of the License.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Library General Public License for more details.
- */
-
-/**
- * @file	tensor_ros_sink.h
- * @date	15 June 2018
- * @brief	GStreamer plugin to handle tensor stream
- * @see		https://github.com/nnsuite/nnstreamer
- * @author	Jaeyun Jung <jy1210.jung@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file    tensor_ros_sink.h
+ * @date    28 Oct 2020
+ * @brief   GStreamer plugin to publish a ROS topic for tensor stream
+ * @see     https://github.com/nnstreamer/nnstreamer-ros
+ * @author  Wook Song <wook16.song@samsung.com>
+ * @bug     No known bugs except for NYI items
  */
 
 #ifndef __GST_TENSOR_ROS_SINK_H__
