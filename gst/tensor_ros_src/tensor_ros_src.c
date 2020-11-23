@@ -223,6 +223,8 @@ gst_tensor_ros_src_init (GstTensorRosSrc * rossrc)
   rossrc->timeout = (gdouble) DEFAULT_TIMEOUT;
   rossrc->queue = NULL;
   rossrc->configured = FALSE;
+  rossrc->nns_ros_bind_instance = NULL;
+
 
   /* set live mode as default */
   set_live_mode (GST_BASE_SRC (rossrc), DEFAULT_LIVE_MODE);
@@ -237,14 +239,15 @@ gst_tensor_ros_src_dispose (GObject * object)
 {
   GstTensorRosSrc *rossrc = GST_TENSOR_ROS_SRC (object);
 
-  if (rossrc->queue)
+  if (rossrc->nns_ros_bind_instance) {
     nns_ros_subscriber_put_queue (rossrc->nns_ros_bind_instance);
 
-  if (rossrc->topic_name)
-    g_free (rossrc->topic_name);
-  rossrc->configured = FALSE;
+    if ((rossrc->topic_name) && (strlen(rossrc->topic_name) != 0))
+      g_free (rossrc->topic_name);
 
-  nns_ros_subscriber_fianlize (rossrc->nns_ros_bind_instance);
+    rossrc->configured = FALSE;
+    nns_ros_subscriber_fianlize (rossrc->nns_ros_bind_instance);
+  }
 
   G_OBJECT_CLASS (parent_class)->dispose (object);
 }
