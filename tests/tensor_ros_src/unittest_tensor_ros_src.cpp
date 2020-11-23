@@ -24,7 +24,7 @@
 
 TEST (test_tensor_ros_src, properties)
 {
-  const gdouble DEFAULT_FREQRATE = 1.0;
+  const gdouble default_freqrate = 1.0;
   GstHarness *hrnss = NULL;
   GstElement *rossrc = NULL;
   gchar *name;
@@ -35,6 +35,12 @@ TEST (test_tensor_ros_src, properties)
   gchar *ret_topic_name;
   gdouble freqrate;
   gdouble ret_freqrate;
+  const gdouble defualt_timeout = 5.0;
+  gdouble timeout;
+  gdouble ret_timeout;
+  const gboolean default_load_rosbag = FALSE;
+  gboolean ret_load_rosbag;
+  gchar *ret_location;
 
   /* setup */
   hrnss = gst_harness_new_empty ();
@@ -65,12 +71,31 @@ TEST (test_tensor_ros_src, properties)
 
   /* freqrate test */
   g_object_get (rossrc, "rate", &ret_freqrate, NULL);
-  EXPECT_DOUBLE_EQ (ret_freqrate, DEFAULT_FREQRATE);
+  EXPECT_DOUBLE_EQ (ret_freqrate, default_freqrate);
 
   freqrate = 10.0;
   g_object_set (rossrc, "rate", freqrate, NULL);
   g_object_get (rossrc, "rate", &ret_freqrate, NULL);
   EXPECT_DOUBLE_EQ (ret_freqrate, freqrate);
+
+  g_object_get (rossrc, "timeout", &ret_timeout, NULL);
+  EXPECT_DOUBLE_EQ (ret_timeout, defualt_timeout);
+  timeout = 1.0;
+  g_object_set (rossrc, "timeout", timeout, NULL);
+  g_object_get (rossrc, "timeout", &ret_timeout, NULL);
+  EXPECT_DOUBLE_EQ (ret_timeout, timeout);
+
+  g_object_get (rossrc, "enable-load-rosbag", &ret_load_rosbag, NULL);
+  EXPECT_EQ (ret_load_rosbag, default_load_rosbag);
+  g_object_set (rossrc, "enable-load-rosbag", !default_load_rosbag, NULL);
+  g_object_get (rossrc, "enable-load-rosbag", &ret_load_rosbag, NULL);
+  EXPECT_EQ (ret_load_rosbag, !default_load_rosbag);
+
+  g_object_get (rossrc, "location", &ret_location, NULL);
+  EXPECT_TRUE (ret_location == NULL);
+  g_object_set (rossrc, "location", "A-ROSBAG-PATH", NULL);
+  g_object_get (rossrc, "location", &ret_location, NULL);
+  EXPECT_STREQ (ret_location, "A-ROSBAG-PATH");
 
   /* teardown */
   gst_harness_teardown (hrnss);

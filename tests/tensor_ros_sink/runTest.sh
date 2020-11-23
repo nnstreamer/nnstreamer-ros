@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 ##
 ## @file runTest.sh
-## @author Wook Song <wook16.song@gmail.com>
-## @date  2월 28 2019
+## @author Wook Song <wook16.song@samsung.com>
+## @date  Nov 25 2029
 ## @brief SSAT test cases for NNStreamer-ros
 #
 if [[ "$SSATAPILOADED" != "1" ]]
@@ -11,8 +11,7 @@ then
 	INDEPENDENT=1
 	search="ssat-api.sh"
 	source $search
-	printf "${Blue}Independent Mode${NC}
-"
+	printf "${Blue}Independent Mode${NC}"
 fi
 testInit "rosbag-based pipeline test"
 rm -rf *.bag
