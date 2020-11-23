@@ -35,6 +35,7 @@
 
 #include "ros/ros.h"
 #include "rosbag/bag.h"
+#include "rosbag/view.h"
 #include "std_msgs/MultiArrayDimension.h"
 #include "std_msgs/MultiArrayLayout.h"
 
@@ -55,6 +56,12 @@ public:
   void subCallback (const std::shared_ptr<nns_ros_bridge::Tensors> msg) final;
   void configure (const std::shared_ptr<nns_ros_bridge::Tensors> msg) final;
   void finalize () final;
+  bool is_configured () { return this->configured; }
+
+  // @todo: Use smart_ptrs
+  void setRosBagReader (rosbag::Bag *bag)  {this->bag_ = bag; }
+  rosbag::Bag *getRosBagReader () { return this->bag_; }
+  void fetchDataFromBag ();
 
 private:
   NnsRosCppSubscriber () {};
@@ -66,6 +73,8 @@ private:
   ros::Subscriber ros_src_sub;
   void subCallbackInternal (const nns_ros_bridge::Tensors msg);
   void configureInternal (const nns_ros_bridge::Tensors msg);
+  // Variables for ROSBAG
+  rosbag::Bag *bag_;
 };
 
 template <>
@@ -94,67 +103,67 @@ NnsRosCppSubscriber::NnsRosCppSubscriber (const gchar *node_name,
   char **dummy_argv = NULL;
   ros::Subscriber tmp_sub;
 
-  if (is_dummy) {
-    g_critical ("%s: Failed to create a NnsRosCppSubscriber instance: Dummy mode is not supported yet\n",
-        (this->str_nns_helper_name).c_str ());
-    throw ROS_INVALID_OPTION;
-  }
+  this->bag_ = NULL;
 
-  if (getenv ("ROS_MASTER_URI") == NULL) throw ROS1_UNDEFINED_ROS_MASTER_URI;
+  if (!is_dummy) {
 
-  ros::init (dummy_argc, dummy_argv, this->str_node_name);
+    if (getenv ("ROS_MASTER_URI") == NULL) throw ROS1_UNDEFINED_ROS_MASTER_URI;
 
-  if (!ros::master::check ()) throw ROS1_FAILED_TO_CONNECT_ROSCORE;
+    ros::init (dummy_argc, dummy_argv, this->str_node_name);
 
-  this->nh_parent = new ros::NodeHandle (BASE_NODE_NAME);
-  this->nh_child =
-      new ros::NodeHandle (*(this->nh_parent), this->str_node_name);
+    if (!ros::master::check ()) throw ROS1_FAILED_TO_CONNECT_ROSCORE;
 
-  try {
-    tmp_sub = this->nh_child->subscribe (
-        this->str_sub_topic_name,
-        this->default_ros_queue_size,
-        &NnsRosCppSubscriber::configureInternal, this);
-  } catch (ros::Exception &e) {
-    g_critical ("%s: Failed to create a subscription for the given topic: %s",
-        (this->str_nns_helper_name).c_str (), e.what ());
-    throw ROS_FAILED_TO_CREATE_SUBSCRIPTION;
-  }
+    this->nh_parent = new ros::NodeHandle (BASE_NODE_NAME);
+    this->nh_child =
+        new ros::NodeHandle (*(this->nh_parent), this->str_node_name);
 
-  st = std::chrono::system_clock::now ();
-
-  ros::Rate ros_rate (this->rate);
-  while (ros::ok ()) {
-    std::chrono::duration<double> diff;
-
-    ros::spinOnce ();
-    ros_rate.sleep ();
-
-    {
-      std::unique_lock<std::mutex> lk (this->g_m);
-      if (this->is_configured)
-        break;
+    try {
+      tmp_sub = this->nh_child->subscribe (
+          this->str_sub_topic_name,
+          this->default_ros_queue_size,
+          &NnsRosCppSubscriber::configureInternal, this);
+    } catch (ros::Exception &e) {
+      g_critical ("%s: Failed to create a subscription for the given topic: %s",
+          (this->str_nns_helper_name).c_str (), e.what ());
+      throw ROS_FAILED_TO_CREATE_SUBSCRIPTION;
     }
 
-    diff = std::chrono::system_clock::now () - st;
-    if (diff > this->timeout) {
-      g_critical ("%s: Failed to configure GstCaps from the given topic",
-          (this->str_nns_helper_name).c_str ());
-      throw ROS_SUBSCRIPTION_TIMED_OUT;
-    }
-  }
+    st = std::chrono::system_clock::now ();
 
-  try {
-    this->ros_src_sub =
-        this->nh_child->subscribe (
+    ros::Rate ros_rate (this->rate);
+    while (ros::ok ()) {
+      std::chrono::duration<double> diff;
+
+      ros::spinOnce ();
+      ros_rate.sleep ();
+
+      {
+        std::unique_lock<std::mutex> lk (this->g_m);
+        if (this->configured)
+          break;
+      }
+
+      diff = std::chrono::system_clock::now () - st;
+      if (diff > this->timeout) {
+        g_critical ("%s: Failed to configure GstCaps from the given topic",
+            (this->str_nns_helper_name).c_str ());
+        throw ROS_SUBSCRIPTION_TIMED_OUT;
+      }
+    }
+
+    try {
+      this->ros_src_sub =
+          this->nh_child->subscribe (
             this->str_sub_topic_name,
             this->default_ros_queue_size,
             &NnsRosCppSubscriber::subCallbackInternal, this);
-  } catch (ros::Exception &e) {
-    g_critical ("%s: Failed to create a subscription for the given topic: %s",
-        (this->str_nns_helper_name).c_str (), e.what ());
-    throw ROS_FAILED_TO_CREATE_SUBSCRIPTION;
+    } catch (ros::Exception &e) {
+      g_critical ("%s: Failed to create a subscription for the given topic: %s",
+          (this->str_nns_helper_name).c_str (), e.what ());
+      throw ROS_FAILED_TO_CREATE_SUBSCRIPTION;
+    }
   }
+
   this->looper = std::make_shared <std::thread> (&NnsRosCppSubscriber::loop,
     this);
   {
@@ -166,7 +175,8 @@ NnsRosCppSubscriber::NnsRosCppSubscriber (const gchar *node_name,
 
 NnsRosCppSubscriber::~NnsRosCppSubscriber ()
 {
-  ros::shutdown ();
+  if (!this->is_dummy)
+    ros::shutdown ();
 }
 
 void
@@ -175,10 +185,13 @@ NnsRosCppSubscriber::finalize ()
   {
     std::unique_lock<std::mutex> lk (this->g_m);
     this->is_looper_ready = false;
-    this->is_configured = false;
+    this->configured = false;
+    if (!this->bag_)
+      g_free (this->bag_);
   }
   this->looper->join ();
-  g_async_queue_unref (this->gasyncq);
+  if (!this->gasyncq)
+    g_async_queue_unref (this->gasyncq);
 }
 
 void
@@ -204,7 +217,7 @@ NnsRosCppSubscriber::configure (
   }
 
   std::unique_lock<std::mutex> lk (this->g_m);
-  this->is_configured = true;
+  this->configured = true;
 }
 
 void
@@ -246,12 +259,13 @@ NnsRosCppSubscriber::configureInternal (const nns_ros_bridge::Tensors msg)
   auto msgSharedPtr = std::make_shared<nns_ros_bridge::Tensors> (msg);
 
   this->configure (msgSharedPtr);
-
 }
 
 void
 NnsRosCppSubscriber::loop ()
 {
+  if (is_dummy)
+    ros::Time::init();
   ros::Rate ros_rate (this->rate);
   std::unique_lock<std::mutex> lk (this->looper_m);
 
@@ -262,13 +276,42 @@ NnsRosCppSubscriber::loop ()
       }
   );
 
-  while (true) {
-    ros::spinOnce ();
-    ros_rate.sleep ();
-    {
+  if (this->is_dummy) {
+    rosbag::Bag *bag;
+
+    while (true) {
       std::unique_lock<std::mutex> lk (this->g_m);
-      if (!this->is_looper_ready)
+      if (!this->configured)
+        std::this_thread::yield ();
+      else
         break;
+    }
+
+    bag = this->getRosBagReader ();
+    if (!bag)
+      return;
+
+    for(rosbag::MessageInstance const m: rosbag::View(*bag))
+    {
+      nns_ros_bridge::Tensors::ConstPtr msg =
+          m.instantiate< nns_ros_bridge::Tensors> ();
+      this->subCallbackInternal (*msg);
+      ros_rate.sleep ();
+      {
+        std::unique_lock<std::mutex> lk (this->g_m);
+        if (!this->is_looper_ready)
+          break;
+      }
+    }
+  } else {
+    while (true) {
+      ros::spinOnce ();
+      ros_rate.sleep ();
+      {
+        std::unique_lock<std::mutex> lk (this->g_m);
+        if (!this->is_looper_ready)
+          break;
+      }
     }
   }
 }
@@ -314,4 +357,39 @@ void nns_ros_subscriber_put_queue (void *instance)
   NnsRosCppSubscriber *nrs_instance = (NnsRosCppSubscriber *) instance;
 
   nrs_instance->putQueue ();
+}
+
+void *
+nns_ros_subscriber_open_readable_bag (void *instance, const char *path)
+{
+  NnsRosCppSubscriber *nrs_instance = (NnsRosCppSubscriber *) instance;
+  char *path_rosbag = g_build_filename (path, NULL);
+  rosbag::Bag *bag;
+
+  if (!g_file_test (path_rosbag, G_FILE_TEST_EXISTS)) {
+    g_critical ("ERROR: The given path of the rosbag file, \"%s\", is not valid.\n",
+        path_rosbag);
+    g_free (path_rosbag);
+
+    return NULL;
+  }
+
+  try {
+    bag = new rosbag::Bag(std::string (path_rosbag), rosbag::bagmode::Read);
+  } catch (rosbag::BagException &e) {
+    bag = NULL;
+  }
+  g_free (path_rosbag);
+
+  nrs_instance->setRosBagReader (bag);
+  for(rosbag::MessageInstance const m: rosbag::View(*bag)) {
+      nns_ros_bridge::Tensors::ConstPtr msg =
+          m.instantiate< nns_ros_bridge::Tensors> ();
+    if (!nrs_instance->is_configured ())
+      nrs_instance->configure (std::make_shared<nns_ros_bridge::Tensors> (*msg));
+    else
+      break;
+  }
+
+  return (void *) bag;
 }
