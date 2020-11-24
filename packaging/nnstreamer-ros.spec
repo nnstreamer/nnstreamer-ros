@@ -16,6 +16,8 @@ BuildRequires:  pkgconfig(gstreamer-1.0)
 BuildRequires:  pkgconfig(gstreamer-base-1.0)
 BuildRequires:  pkgconfig(gstreamer-audio-1.0)
 BuildRequires:  pkgconfig(gstreamer-video-1.0)
+BuildRequires:  gst-plugins-good
+BuildRequires:  gst-plugins-good-extra
 # nnstreamer
 BuildRequires:  pkgconfig(nnstreamer)
 # ROS
