@@ -34,7 +34,8 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential bsdmainutils cmake libgstreamer1.0-dev \
             libgstreamer-plugins-base1.0-dev libglib2.0-dev gstreamer1.0-plugins-base \
-            lcov gstreamer1.0-tools libgtest-dev ssat python2.7 nnstreamer-dev
+            gstreamer1.0-plugins-good lcov gstreamer1.0-tools libgtest-dev ssat \
+            python2.7 nnstreamer-dev
           if [[ ${{matrix.ros_distro}} == "eloquent" ]]
           then
             sudo apt install -y ros-${{matrix.ros_distro}}-ament-cmake \
