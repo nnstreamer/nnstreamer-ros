@@ -1,3 +1,9 @@
+nnstreamer-ros (0.1.1) stable; urgency=medium
+
+   * Release of v0.1.1 (This is the first stable version of NNStreamer-ROS)
+
+ -- Wook Song <wook16.song@samsung.com>  Wed, 25 Nov 2020 15:51:55 +0900
+
 nnstreamer-ros (0.1) unstable; urgency=medium
 
   * Added tensor_ros2_sink and tensor_ros2_src to support ROS2 (eloquent)

@@ -37,12 +37,11 @@ jobs:
       env:
         BINTRAY_API_KEY : ${{ secrets.BINTRAY_API_KEY }}
       run:  |
-        git fetch --tags origin
         export VER=`cat ./debian/changelog | head -n1 | awk -F ['()'] {'print $2}'`
-        export REL_VER=`git tag | head -1`-`git rev-list --count $(git rev-list --tags --max-count=1)..HEAD`-g`git log -1 --oneline --pretty=format:"%h"`
+        export REL_VER=${VER}~$(date +'%Y%m%d%H%M')
         export DISTRO=`lsb_release -sc`
         export ARCH=`dpkg-architecture -q DEB_TARGET_ARCH`
         for each_deb in $(ls /var/cache/pbuilder/result/nnstreamer-ros*_${VER}_${ARCH}.deb); do
           export PKG_NAME=`basename ${each_deb} | awk -F_ '{print $1}'`_${REL_VER}_${DISTRO}_${ARCH}.deb
-          curl -T "${each_deb}" -uwooksong:"${BINTRAY_API_KEY}" -H "X-Bintray-Package:nnstreamer-ros" -H "X-Bintray-Version:${VER}" -H "X-Bintray-Debian-Distribution:${DISTRO}" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:${ARCH}" -H "X-Bintray-Publish:1" https://api.bintray.com/content/nnsuite/nnstreamer-ros/pool/main/m/${PKG_NAME}
+          curl -T "${each_deb}" -uwooksong:"${BINTRAY_API_KEY}" -H "X-Bintray-Package:nnstreamer-ros" -H "X-Bintray-Version:${REL_VER}" -H "X-Bintray-Debian-Distribution:${DISTRO}" -H "X-Bintray-Debian-Component:main" -H "X-Bintray-Debian-Architecture:${ARCH}" -H "X-Bintray-Publish:1" https://api.bintray.com/content/nnsuite/nnstreamer-ros/pool/main/m/${PKG_NAME}
         done

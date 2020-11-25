@@ -1,6 +1,6 @@
 Name:       nnstreamer-ros
 Summary:    nnstreamer extension plugins for ROS support
-Version:    0.0.1
+Version:    0.1.1
 Release:    0
 Group:      Applications/Multimedia
 License:    LGPL-2.1
@@ -132,3 +132,7 @@ cp -r result %{buildroot}%{_datadir}/%{name}/unittest
 %manifest nnstreamer-ros.manifest
 %{_datadir}/nnstreamer-ros/unittest/*
 %endif
+
+%changelog
+* Wed Nov 25 2020 Wook Song <wook16.song@samsung.com>
+-  Release of v0.1.1 (The first stable version)
