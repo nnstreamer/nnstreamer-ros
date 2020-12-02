@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>nns_ros_bridge</name>
-  <version>0.0.1</version>
+  <version>0.1.1</version>
   <description>A bridge for ROS support within NNStreamer</description>
   <maintainer email="wook16.song@samsung.com">Wook Song</maintainer>
   <author email="woo16.song@samsung.com">Wook Song</author>
